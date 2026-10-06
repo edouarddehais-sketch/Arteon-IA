@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEON — IA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#050507;--panel:#0d0d11;--line:#1e1e26;--txt:#f4f4f6;--mut:#8b8b99;--acc:#ffffff;--dim:#14141a}
+body{background:var(--bg);color:var(--txt);font-family:"Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ═══ ÉCRAN DE CHARGEMENT ═══ */
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;transition:opacity .7s ease,visibility .7s}
+#splash.hide{opacity:0;visibility:hidden}
+.orbwrap{position:relative;width:130px;height:130px}
+.orb{position:absolute;inset:0;border-radius:50%;border:1px solid #2a2a35;animation:spin 3.4s linear infinite}
+.orb:nth-child(2){inset:16px;border-color:#3a3a4a;animation-duration:2.4s;animation-direction:reverse}
+.orb:nth-child(3){inset:32px;border-color:#55556a;animation-duration:1.7s}
+.core{position:absolute;inset:50px;border-radius:50%;background:#fff;box-shadow:0 0 40px #fff8,0 0 90px #fff4;animation:beat 1.4s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes beat{50%{transform:scale(.82);box-shadow:0 0 60px #fff,0 0 120px #fff6}}
+.sname{font-size:26px;letter-spacing:12px;font-weight:200;padding-left:12px}
+.sname b{font-weight:700}
+.sbar{width:230px;height:2px;background:#1a1a22;border-radius:2px;overflow:hidden}
+.sfill{height:100%;width:0%;background:linear-gradient(90deg,#fff,#8f8fff);transition:width .35s ease;border-radius:2px}
+.stxt{font-size:11.5px;letter-spacing:3px;color:var(--mut);text-transform:uppercase;min-height:14px}
+.sdot{width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+
+/* ═══ APP ═══ */
+#app{display:none;flex-direction:column;min-height:100vh;opacity:0;transform:translateY(16px) scale(.996);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+#app.show{opacity:1;transform:none}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:11px;background:rgba(5,5,7,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:11px 16px}
+.hlogo{width:34px;height:34px;border-radius:10px;background:#fff;color:#000;font-weight:900;font-size:17px;display:flex;align-items:center;justify-content:center}
+header h1{font-size:13.5px;letter-spacing:5px;font-weight:600}
+header h1 span{color:var(--mut);font-weight:300;letter-spacing:2px}
+.hstat{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:11px;color:var(--mut)}
+#burger{background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:9px;font-size:17px;padding:7px 12px;cursor:pointer}
+#burger:hover{border-color:#fff}
+
+/* drawer */
+#back{position:fixed;inset:0;background:#000b;z-index:29;display:none}
+#menu{position:fixed;top:0;right:-330px;width:310px;max-width:87vw;height:100vh;background:var(--panel);border-left:1px solid var(--line);z-index:30;transition:right .28s cubic-bezier(.4,0,.2,1);padding:18px 16px;overflow-y:auto}
+#menu.open{right:0}
+#menu h2{font-size:10px;letter-spacing:2.5px;color:#666;margin:18px 0 9px;text-transform:uppercase}
+#menu h2:first-child{margin-top:0}
+.opt{width:100%;text-align:left;background:var(--dim);border:1px solid var(--line);color:#e8e8ee;border-radius:11px;padding:10px 12px;font-size:13.5px;margin-bottom:7px;cursor:pointer;transition:.15s}
+.opt:hover{border-color:#fff}.opt.on{border-color:#fff;background:#1c1c24}
+.opt b{float:right;color:#777;font-weight:600}
+.fld{width:100%;background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:10px;padding:9px 11px;font-size:13px;margin-bottom:8px;outline:none}
+.fld:focus{border-color:#fff}
+.lbl{font-size:10.5px;letter-spacing:1px;color:#666;display:block;margin:6px 0 4px;text-transform:uppercase}
+#hist button{display:block;width:100%;text-align:left;background:none;border:none;color:#777;font-size:12.5px;padding:7px 3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hist button:hover{color:#fff}
+.stats{display:flex;gap:7px}.stats div{flex:1;background:var(--dim);border:1px solid var(--line);border-radius:11px;padding:8px 4px;text-align:center}.stats b{font-size:15px;display:block}.stats span{font-size:9.5px;color:#666;letter-spacing:.5px}
+.cap{font-size:12px;color:#999;line-height:1.95}
+
+/* chat */
+#chat{flex:1;width:100%;max-width:780px;margin:0 auto;padding:22px 16px 170px;display:flex;flex-direction:column;gap:13px}
+.msg{max-width:92%;padding:13px 15px;border-radius:17px;font-size:15px;line-height:1.65;word-wrap:break-word;animation:in .22s ease;box-shadow:0 2px 20px #0006}
+@keyframes in{from{transform:translateY(8px);opacity:0}}
+.me{align-self:flex-end;background:#fff;color:#000;border-bottom-right-radius:6px;font-weight:500}
+.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-top-left-radius:6px}
+.who{font-size:9.5px;letter-spacing:2.5px;color:#666;margin-bottom:6px;text-transform:uppercase}
+.who b{color:#ccc}
+.badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:1.5px;border-radius:6px;padding:3px 8px;margin-bottom:7px;border:1px solid #333;color:#aaa;background:#111}
+.badge.l{color:#fff;border-color:#666}
+.badge.w{color:#c9c9d4;border-color:#444}
+.mini{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.mini a,.mini button{font-size:12px;background:var(--dim);border:1px solid var(--line);color:#ddd;border-radius:9px;padding:6px 11px;cursor:pointer;text-decoration:none;transition:.15s}
+.mini a:hover,.mini button:hover{border-color:#fff;color:#fff}
+.wimg{width:100%;max-width:330px;border-radius:11px;margin-top:9px;border:1px solid var(--line)}
+.sugs{display:flex;gap:7px;flex-wrap:wrap}
+.sugs button{background:var(--dim);border:1px dashed #3d3d4d;color:#bbb;border-radius:18px;padding:7px 13px;font-size:12.5px;cursor:pointer;transition:.15s}
+.sugs button:hover{border-color:#fff;color:#fff}
+.typ i{width:6px;height:6px;background:#555;border-radius:50%;display:inline-block;margin-right:4px;animation:b 1s infinite}.typ i:nth-child(2){animation-delay:.15s}.typ i:nth-child(3){animation-delay:.3s}@keyframes b{50%{opacity:.15;transform:translateY(-3px)}}
+
+/* prompt */
+#bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,transparent,var(--bg) 30%);padding:18px 12px 14px}
+#box{max-width:780px;margin:0 auto;display:flex;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:19px;padding:8px;transition:.2s;box-shadow:0 8px 40px #000}
+#box:focus-within{border-color:#fff;box-shadow:0 0 0 3px #ffffff14,0 8px 40px #000}
+#in{flex:1;background:none;border:none;outline:none;color:#fff;font-size:15px;padding:11px;min-width:0;font-family:inherit}
+#in::placeholder{color:#555}
+.ib{background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:13px;padding:10px 14px;font-size:15px;cursor:pointer;transition:.15s}
+.ib:hover{border-color:#fff}
+#send{background:#fff;color:#000;border:none;font-weight:800;padding:10px 21px}
+.hint{max-width:780px;margin:8px auto 0;text-align:center;font-size:10.5px;letter-spacing:1.5px;color:#555;text-transform:uppercase}
+code{background:#1a1a20;padding:2px 7px;border-radius:6px;color:#b9c4ff;font-size:13.5px}
+a{color:#fff;text-decoration:underline}
+
+/* navigateur */
+#nav{position:fixed;left:0;right:0;bottom:0;top:58px;z-index:25;background:#030304;border-top:1px solid var(--line);display:none;flex-direction:column}
+#nav.open{display:flex}
+#navtools{display:flex;gap:6px;padding:9px;background:#0a0a0d;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#navtools input{flex:1;min-width:130px;background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:10px;padding:9px 11px;font-size:13px;outline:none}
+#navtools button{background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:10px;padding:9px 12px;font-size:13px;cursor:pointer}
+#navtools button:hover{border-color:#fff}
+#frame{flex:1;width:100%;border:none;background:#fff}
+/* ═══ STUDIO IMAGE ═══ */
+#studio{position:fixed;left:0;right:0;bottom:0;top:58px;z-index:26;background:#050507;border-top:1px solid var(--line);display:none;flex-direction:column}
+#studio.open{display:flex}
+#stools{display:flex;gap:6px;padding:9px;background:#0a0a0d;border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center}
+#stools button{background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:10px;padding:9px 13px;font-size:13px;cursor:pointer}
+#stools button:hover{border-color:#fff}
+#stools button.on{border-color:#fff;background:#22222c}
+.spane{flex:1;overflow-y:auto;padding:14px;max-width:780px;width:100%;margin:0 auto}
+.spane input[type=text],.spane input:not([type]),#sPrompt{width:100%;background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:12px;padding:12px;font-size:14px;outline:none;font-family:inherit}
+.spane input:focus{border-color:#fff}
+.srow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.srow select{background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:10px;padding:10px;font-size:13px}
+.srow button{background:#fff;color:#000;border:none;border-radius:11px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer}
+.srow button.ghost{background:var(--dim);color:#fff;border:1px solid var(--line);font-weight:400}
+#sLoad{font-size:13px;color:var(--mut);margin-top:10px;min-height:18px}
+#sView img{width:100%;border-radius:14px;border:1px solid var(--line);margin-top:10px}
+#sgal{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:12px}
+.gitem{border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:var(--dim)}
+.gitem img{width:100%;display:block;aspect-ratio:1;object-fit:cover}
+.gitem span{display:block;font-size:10px;color:#888;padding:5px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gitem:hover{border-color:#fff}
+#stage{position:relative;margin-top:12px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#000}
+#stage canvas{width:100%;display:block}
+#cm{position:absolute;inset:0;cursor:crosshair;touch-action:none}
+.srow label{font-size:12px;color:#aaa;display:flex;align-items:center;gap:8px}
+.upl{background:var(--dim);border:1px solid var(--line);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px;cursor:pointer}
+.srow button.on{border-color:#fff;background:#2b2b38}
+#eHint{font-size:12px;color:#777}
+/* ═══ SPLASH STYLÉ ═══ */
+.sname{background:linear-gradient(90deg,#fff,#8f8fff,#fff);background-size:220% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 2.8s linear infinite}
+@keyframes shine{to{background-position:220% center}}
+.core{box-shadow:0 0 40px #fff8,0 0 90px #8f8fff55;animation:beat 1.4s ease-in-out infinite,halo 2.8s ease-in-out infinite}
+@keyframes halo{50%{box-shadow:0 0 70px #fff,0 0 150px #8f8fffaa}}
+/* ═══ THÈME CLAIR ═══ */
+body.light{--bg:#eef0f4;--panel:#ffffff;--line:#dde0e8;--txt:#15151b;--mut:#6e6e79;--dim:#e8eaf0}
+body.light header{background:rgba(255,255,255,.9)}
+body.light .hlogo{background:#111;color:#fff}
+body.light #burger{color:#111}
+body.light .opt{color:#23232b}
+body.light .opt b{color:#999}
+body.light .fld{color:#111}
+body.light select.fld option{color:#111}
+body.light .lbl{color:#8a8a95}
+body.light .cap{color:#55555f}
+body.light #hist button:hover{color:#000}
+body.light .me{background:#111;color:#fff}
+body.light .who b{color:#555}
+body.light .badge{background:#f1f2f6;color:#666}
+body.light .badge.l{color:#000;border-color:#999}
+body.light .mini a,body.light .mini button{color:#222}
+body.light .sugs button{color:#444}
+body.light #in{color:#111}
+body.light #in::placeholder{color:#9a9aa5}
+body.light .ib{color:#111}
+body.light #send{background:#111;color:#fff}
+body.light .hint{color:#9a9aa5}
+body.light code{background:#e6e9ff;color:#2b3bff}
+body.light a{color:#000}
+body.light .sname{background:linear-gradient(90deg,#111,#7a7aff,#111);background-size:220% auto;-webkit-background-clip:text;background-clip:text;color:transparent}
+body.light .sfill{background:linear-gradient(90deg,#111,#7a7aff)}
+body.light #navtools input,body.light #navtools button{color:#111}
+body.light #stools button{color:#111}
+body.light .spane input[type=text],body.light .spane input:not([type]),body.light #sPrompt{color:#111}
+body.light .srow select{color:#111}
+body.light .srow button{background:#111;color:#fff}
+body.light .srow button.ghost{background:var(--dim);color:#111}
+body.light .srow label{color:#555}
+body.light .upl{color:#111}
+body.light #eHint{color:#888}
+body.light .gitem span{color:#666}
+@media(max-width:640px){.hstat{display:none}header h1{font-size:12px;letter-spacing:3px}.msg{max-width:97%;font-size:14.5px}}
+</style>
+</head>
+<body>
+<script>try{if(localStorage.getItem('arteon_theme')==='light')document.body.classList.add('light');}catch(e){}</script>
+
+<!-- ═══ ÉCRAN DE CHARGEMENT ═══ -->
+<div id="splash">
+  <div class="orbwrap"><div class="orb"></div><div class="orb"></div><div class="orb"></div><div class="core"></div></div>
+  <div class="sname">ARTE<b>ON</b></div>
+  <div class="sbar"><div class="sfill" id="sfill"></div></div>
+  <div class="stxt" id="stxt">Initialisation…</div>
+  <div class="sdot"></div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+<header>
+  <div class="hlogo">A</div><h1>ARTEON <span>IA</span></h1>
+  <div class="hstat"><span class="sdot"></span> <span id="netstate">Arteon</span></div>
+  <button id="burger">☰</button>
+</header>
+
+<div id="back"></div>
+<nav id="menu">
+  <h2>👤 Compte</h2>
+  <div class="cap" id="whoami"></div>
+  <div id="users"></div>
+  <button class="opt" id="bUserNew">➕ Nouveau compte</button>
+  <div class="cap">🔒 Comptes 100% locaux, sur ce PC uniquement.<br>Se connecter avec Google exige les serveurs Google + internet : incompatible avec une app hors-ligne.</div>
+  <h2>RÃ©glages IA</h2>
+  <button class="opt md" data-m="1.1">Basique <b>Arteon 1.1</b></button>
+  <button class="opt md" data-m="1.4">Ultra <b>Arteon 1.4</b></button>
+  <button class="opt md" data-m="3.2">Professionnel, recommandÃ© <b>Arteon 3.2</b></button>
+  <button class="opt md" data-m="3.3">Pro + Coding <b>3.3</b></button>
+  <label class="lbl">ClÃ© Mistral (3.2)</label>
+  <input class="fld" id="mistKey" type="password" placeholder="Coller la clÃ© API Mistral">
+  <label class="lbl">ClÃ© OpenAI (3.3)</label>
+  <input class="fld" id="gptKey" type="password" placeholder="Coller la clÃ© API OpenAI">
+  <h2>🎓 Entraînement</h2>
+  <label class="lbl">Apprends des infos (JSON ou Q :: R)</label>
+  <input class="fld" id="trainIn" placeholder='[{"q":"...","a":"..."}] ou Q :: R'>
+  <button class="opt" id="bTrain">📥 Apprendre</button>
+  <button class="opt" id="bTrainShow">📚 Voir le savoir (<span id="tn">0</span>)</button>
+  <h2>🎨 Images</h2>
+<button class="opt" id="bImgGen">🎨 Générer une image</button>
+<button class="opt" id="bStudio">🧽 Studio retouche (gommer)</button>
+<h2>🧭 Navigateur</h2>
+  <button class="opt" id="tNav">🧭 Ouvrir navigateur intégré</button>
+  <h2>⚙ Apparence</h2>
+  <button class="opt" id="tTheme">☀ ThÃ¨me clair <b>OFF</b></button>
+  <h2>Actions</h2>
+  <button class="opt" id="bMic">🎤 Micro</button>
+  <button class="opt" id="bHelp">❓ Aide / capacités</button>
+  <button class="opt" id="bExport">💾 Exporter</button>
+  <button class="opt" id="bClear">🗑️ Effacer mémoire</button>
+  <h2>📊 Stats</h2>
+  <div class="stats"><div><b id="sQ">0</b><span>QUESTIONS</span></div><div><b id="sL">0</b><span>LOCAL</span></div><div><b id="sW">0</b><span>WEB</span></div></div>
+  <h2>🕘 Historique</h2><div id="hist"></div>
+  <h2>🧠 Connaissances</h2><div class="cap">Calculs • % • moyennes • conversions<br>120+ capitales • monnaies<br>70+ fiches cours • traducteur<br>Conjugaison • éléments chimiques<br>Connaissances entraînées 🎓<br>Google + Wikipedia auto 🌐</div>
+</nav>
+
+<main id="chat"></main>
+
+<section id="nav">
+  <div id="navtools">
+    <button id="nClose">✕</button>
+    <input id="nIn" placeholder="Recherche ou URL…">
+    <button id="nGo">➤</button><button id="nG">Google</button><button id="nW">Wikipédia</button><button id="nExt">↗ Externe</button>
+  </div>
+  <iframe id="frame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+</section>
+
+<section id="studio">
+<div id="stools">
+<button id="sClose">✕</button>
+<button class="stab on" data-t="gen">🎨 Générer</button>
+<button class="stab" data-t="edit">🧽 Retoucher / gommer</button>
+</div>
+<div id="spanGen" class="spane">
+<input id="sPrompt" placeholder="Décris l'image… ex : un château volant au coucher du soleil">
+<div class="srow">
+<select id="sStyle"><option value="photo">📷 Photo réaliste</option><option value="anime">🌸 Anime</option><option value="peinture">🎨 Peinture</option><option value="pixel">🟪 Pixel art</option><option value="3d">🧊 3D</option><option value="bd">💥 BD / comic</option></select>
+<select id="sSize"><option value="1024x1024">⬛ Carré</option><option value="768x1024">🧍 Portrait</option><option value="1024x768">🌅 Paysage</option></select>
+<button id="sGen">Générer ✨</button>
+</div>
+<div id="sLoad"></div>
+<div id="sView"></div>
+<div id="sgal"></div>
+</div>
+<div id="spanEdit" class="spane" style="display:none">
+<div class="srow">
+<button class="ghost" id="eErase">🧽 Gommer &amp; remplacer ✨</button>
+<button class="ghost" id="eBlur">💧 Flouter</button>
+<button class="ghost" id="ePix">🟪 Pixeliser</button>
+<button class="ghost" id="eUndo">↩ Annuler</button>
+<button class="ghost" id="eClear">✕ Vider la sélection</button>
+<button class="ghost" id="eDl">💾 Télécharger</button>
+<label class="upl">📁 Importer<input type="file" id="eFile" accept="image/*" hidden></label>
+</div>
+<div class="srow"><button class="ghost tmode on" data-m="auto">🪄 Auto (entoure l'objet)</button><button class="ghost tmode" data-m="brush">🖌 Pinceau</button><button class="ghost tmode" data-m="stamp">🖨 Tampon clone</button></div>
+<div class="srow"><label>Sensibilité <input type="range" id="eTol" min="6" max="70" value="26"></label><label>Taille pinceau <input type="range" id="eSize" min="5" max="120" value="40"></label></div>
+<div class="srow"><span id="eHint">🪄 Entoure grossièrement l'objet : je le sélectionne seul sur les contours. Ajuste la sensibilité, puis « Gommer &amp; remplacer ».</span></div>
+<div id="stage"><canvas id="cv"></canvas><canvas id="cm"></canvas></div>
+</div>
+</section>
+<div id="bar"><div id="box">
+  <input id="in" placeholder="Écris à Arteon…" autocomplete="off">
+  <button class="ib" id="bMic2">🎤</button>
+  <button class="ib" id="send">➤</button>
+</div><div class="hint">Arteon · IA indépendante · local + entraînée 🎓</div></div>
+</div>
+
+<script>
+"use strict";
+/* ══════════ ÉCRAN DE CHARGEMENT ══════════ */
+const STEPS=[[12,"Réveil du noyau…"],[30,"Connexion au modèle local…"],[52,"Indexation des connaissances…"],[70,"Chargement de ton compte…"],[86,"Préparation de Wikipédia…"],[100,"Prêt."]];
+let si=0;
+(function step(){
+  if(si>=STEPS.length){
+    setTimeout(()=>{
+      document.getElementById('splash').classList.add('hide');
+      const app=document.getElementById('app');app.style.display='flex';requestAnimationFrame(()=>app.classList.add('show'));
+    },450);return;
+  }
+  document.getElementById('sfill').style.width=STEPS[si][0]+'%';
+  document.getElementById('stxt').textContent=STEPS[si][1];
+  si++;setTimeout(step,380+Math.random()*260);
+})();
+
+/* ══════════ BASE ══════════ */
+const chat=document.getElementById('chat'),inp=document.getElementById('in');
+const $=id=>document.getElementById(id);
+/* COMPTES LOCAUX : chaque profil a sa propre memoire via un prefixe de cles */
+function curUid(){try{const u=JSON.parse(localStorage.getItem('arteon_users')||'[]');const c=localStorage.getItem('arteon_cur')||'guest';if(c==='guest'||u.some(x=>x.id===c))return c;}catch(e){}return 'guest';}
+let PFX=curUid()==='guest'?'arteon_':'arteon_u_'+curUid()+'_';
+let engineMode='1.4';try{engineMode=localStorage.getItem('arteon_mode')||'1.4';}catch(e){}
+let webON=true,voice=false,nQ=+(localStorage.getItem(PFX+'n')||0),nL=+(localStorage.getItem(PFX+'l')||0),nW=+(localStorage.getItem(PFX+'w')||0),aiON=localStorage.getItem(PFX+'ai')!=='0',aiModel=localStorage.getItem(PFX+'model')||'qwen2.5:3b';
+let myName=localStorage.getItem(PFX+'name')||"",lastSub=localStorage.getItem(PFX+'ctx')||"";
+let MEM=[];try{MEM=JSON.parse(localStorage.getItem(PFX+'mem')||'[]');}catch(e){MEM=[];}
+function stats(){try{$('sQ').textContent=nQ;$('sL').textContent=nL;$('sW').textContent=nW;$('tn').textContent=MEM.length;}catch(e){}}stats();renderHist();
+const menu=$('menu'),back=$('back');
+$('burger').onclick=()=>{menu.classList.add('open');back.style.display='block';};
+function closeMenu(){menu.classList.remove('open');back.style.display='none';}back.onclick=closeMenu;
+function norm(s){return(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9+\-*/%^().,!?:' ]/g,' ').replace(/\s+/g,' ').trim();}
+function esc(s){return String(s).replace(/</g,'&lt;');}
+function speak(t){if(!voice)return;try{speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(t.slice(0,230).replace(/<[^>]+>/g,'')));}catch(e){}}
+/* Arteon 100% indépendant : Google en source, moteur local + Wikipédia */
+function wUrl(q){return"https://fr.wikipedia.org/wiki/Sp%C3%A9cial:Recherche?search="+encodeURIComponent(q);}
+function gUrl(q){return"https://www.google.com/search?q="+encodeURIComponent(q)+"&igu=1&hl=fr";}
+function ddgUrl(q){return"https://html.duckduckgo.com/html/?q="+encodeURIComponent(q);}
+function saveChat(a){try{let c=JSON.parse(localStorage.getItem(PFX+'chat')||'[]');c.push(...a);localStorage.setItem(PFX+'chat',JSON.stringify(c.slice(-40)));}catch(e){}}
+function pushHist(q){try{let h=JSON.parse(localStorage.getItem(PFX+'hq')||'[]');h.unshift(q);localStorage.setItem(PFX+'hq',JSON.stringify(h.slice(0,25)));renderHist();}catch(e){}}
+function renderHist(){const h=$('hist');h.innerHTML='';try{JSON.parse(localStorage.getItem(PFX+'hq')||'[]').forEach(q=>{const b=document.createElement('button');b.textContent='💬 '+q.slice(0,38);b.onclick=()=>{inp.value=q;closeMenu();send();};h.appendChild(b);});}catch(e){}}
+function addMsg(html,me,badge){const d=document.createElement('div');d.className='msg '+(me?'me':'bot');
+d.innerHTML=(me?'':(badge?'<div class="who">ARTEON <b>✦</b></div>':'<div class="who">ARTEON <b>✦</b></div>'))+(badge?'<span class="badge '+badge.c+'">'+badge.t+'</span><br>':'')+html;
+chat.appendChild(d);window.scrollTo(0,document.body.scrollHeight);return d;}
+function miniBtns(q,url){return '<div class="mini"><a href="'+url+'" target="_blank">📖 Wikipédia</a><button onclick="openNav(\''+url.replace(/'/g,'')+'\')">🧭 Lire ici</button><button onclick="navigator.clipboard.writeText(this.closest(\'.msg\').innerText)">📋 <a href="'+gUrl(q)+'" target="_blank">Google</a><button onclick="openNav(\''+gUrl(q).replace(/'/g,'')+'\')">Google ici</button><button onclick="navigator.clipboard.writeText(this.closest(\'.msg\').innerText)">Copier</button></div>';}
+window.miniBtns=miniBtns;
+// chaque lancement = page vierge ; les questions restent dans le menu Historique
+try{localStorage.removeItem(PFX+'chat');}catch(e){}
+addMsg("Salut"+(myName?" <b>"+esc(myName)+"</b>":"")+" 👋 Je suis <b>ARTEON</b>, ton IA indÃ©pendante.<br><br>⚡ Je calcule, j'explique, je retiens ton nom<br>🎓 J'apprends ce que tu m'enseignes<br>🧠 IA Arteon local : garde vos données et ne partage pas. 👤 Comptes privÃ©s dans le menu<br>🌐 Je vÃ©rifie sur WikipÃ©dia si besoin<br><br>Dis <code>aide</code> pour tout voir.",false,{c:'l',t:'⚡ LOCAL'});
+const s=document.createElement('div');s.className='sugs';
+["tpp","qui est Marie Curie ?","12*45+7","dessine un chÃ¢teau volant","capitale du Japon","prÃ©sident de la France"].forEach(x=>{const b=document.createElement('button');b.textContent=x;b.onclick=()=>{inp.value=x;send();};s.appendChild(b);});chat.appendChild(s);
+
+/* ══════════ NAVIGATEUR INTÉGRÉ ══════════ */
+const nav=$('nav'),frame=$('frame'),nIn=$('nIn');
+function openNav(url){nav.classList.add('open');if(url){frame.src=url;nIn.value=url;}}
+window.openNav=openNav;
+$('tNav').onclick=()=>{closeMenu();openNav("https://fr.wikipedia.org/wiki/Wikip%C3%A9dia:Accueil");};
+$('nClose').onclick=()=>{nav.classList.remove('open');frame.src='about:blank';};
+$('nGo').onclick=()=>{let v=nIn.value.trim();if(!v)return;if(!/^https?:\/\//i.test(v)&&!v.includes('.'))v=gUrl(v);else if(!/^https?:\/\//i.test(v))v="https://"+v;openNav(v);};
+nIn.addEventListener('keydown',e=>{if(e.key==='Enter')$('nGo').click();});
+$('nW').onclick=()=>openNav(wUrl(nIn.value.trim()||inp.value.trim()||"arteon"));
+$('nG').onclick=()=>window.open(gUrl(nIn.value.trim()||inp.value.trim()||"arteon"),"_blank");
+$('nExt').onclick=()=>window.open(frame.src==="about:blank"?"https://fr.wikipedia.org":frame.src,"_blank");
+
+/* ══════════ CERVEAU LOCALE ══════════ */
+const pick=a=>Array.isArray(a)?a[Math.floor(Math.random()*a.length)]:a;
+const BLAGUES=["Pourquoi les plongeurs plongent en arrière ? Sinon ils tombent dans le bateau 😄","Que dit un 0 à un 8 ? Belle ceinture ! 😂","Pourquoi les maths sont tristes ? Trop de problèmes.","Un pingouin respire par les fesses, un jour il s'assoit… 💀","Le comble de l'électricien ? Ne pas être au courant ⚡","Deux atomes : « j'ai perdu un électron ! » — « positif ? » — « oui ! » ⚛️","Que dit un mur à un autre ? On se revoit au coin !","Pourquoi les fantômes mentent mal ? On voit à travers 👻","C'est quoi un petit pois avec une épée ? Un petit pois… l'épée ! ⚔️","Un chat dans la peinture ? Un chat-peint 🎨","Poissons et tennis ? Le filet 🎾","M. et Mme Patate ont un fils : Léo-Patate 🥔","Pourquoi les livres n'ont pas froid ? Couverture 📚","Un ordi qui a froid ? Il se Windows ❄️"];
+const CITATIONS=["« Le succès, c'est d'aller d'échec en échec sans perdre son enthousiasme. » — Churchill","« Sois le changement que tu veux voir dans le monde. » — Gandhi","« L'éducation est l'arme la plus puissante. » — Mandela","« La simplicité est la sophistication suprême. » — Vinci","« Seul on va vite, ensemble on va loin. »","« Le travail bat le talent quand le talent ne travaille pas. »"];
+const DEVINETTES=[["Je suis toujours devant toi mais on ne me voit jamais. Qui suis-je ?","L'avenir 👁️"],["Je commence la nuit et je finis le matin. Qui suis-je ?","La lettre N 🌙"],["Plus on m'enlève, plus je grandis. Qui suis-je ?","Un trou 🕳️"],["Je parle sans bouche et j'entends sans oreilles. Qui suis-je ?","Un écho 🔊"],["Qu'est-ce qui monte sans jamais descendre ?","Ton âge 🎂"],["Je suis blanc quand je suis sale. Qui suis-je ?","Le tableau… euh, le tableau noir ? 😅"]];
+const CAPITALES={"france":"Paris","belgique":"Bruxelles","suisse":"Berne","luxembourg":"Luxembourg","monaco":"Monaco","canada":"Ottawa","usa":"Washington","etats-unis":"Washington","mexique":"Mexico","bresil":"Brasilia","argentine":"Buenos Aires","perou":"Lima","colombie":"Bogota","chili":"Santiago","venezuela":"Caracas","cuba":"La Havane","haiti":"Port-au-Prince","japon":"Tokyo","chine":"Pékin","inde":"New Delhi","coree du sud":"Séoul","vietnam":"Hanoï","thailande":"Bangkok","indonesie":"Jakarta","philippines":"Manille","turquie":"Ankara","arabie saoudite":"Riyad","israel":"Jérusalem","liban":"Beyrouth","egypte":"Le Caire","maroc":"Rabat","algerie":"Alger","tunisie":"Tunis","libye":"Tripoli","senegal":"Dakar","mali":"Bamako","guinee":"Conakry","cote d ivoire":"Yamoussoukro","ghana":"Accra","nigeria":"Abuja","niger":"Niamey","cameroun":"Yaoundé","congo":"Brazzaville","rdc":"Kinshasa","ethiopie":"Addis-Abeba","kenya":"Nairobi","madagascar":"Antananarivo","afrique du sud":"Pretoria","angleterre":"Londres","royaume-uni":"Londres","irlande":"Dublin","espagne":"Madrid","portugal":"Lisbonne","italie":"Rome","allemagne":"Berlin","autriche":"Vienne","pays-bas":"Amsterdam","pologne":"Varsovie","grece":"Athènes","suede":"Stockholm","norvege":"Oslo","danemark":"Copenhague","finlande":"Helsinki","islande":"Reykjavik","hongrie":"Budapest","roumanie":"Bucarest","tchequie":"Prague","croatie":"Zagreb","serbie":"Belgrade","bulgarie":"Sofia","ukraine":"Kyiv","russie":"Moscou","australie":"Canberra","nouvelle-zelande":"Wellington","pakistan":"Islamabad","iran":"Téhéran","irak":"Bagdad","qatar":"Doha","emirats":"Abou Dabi","equateur":"Quito","bolivie":"Sucre","paraguay":"Asuncion","uruguay":"Montevideo"};
+const MONNAIES={"france":"euro (€)","belgique":"euro (€)","espagne":"euro (€)","italie":"euro (€)","allemagne":"euro (€)","portugal":"euro (€)","maroc":"dirham","algerie":"dinar","tunisie":"dinar","suisse":"franc suisse","usa":"dollar américain","canada":"dollar canadien","royaume-uni":"livre sterling","japon":"yen","chine":"yuan","inde":"roupie","russie":"rouble","bresil":"réal","turquie":"livre turque","coree du sud":"won","australie":"dollar australien","egypte":"livre égyptienne","senegal":"franc CFA","mali":"franc CFA","cameroun":"franc CFA"};
+const PRESIDENTS={"france":"Emmanuel Macron (depuis 2017, réélu 2022)","usa":"Donald Trump (depuis 2025, 47e)","etats-unis":"Donald Trump (depuis 2025, 47e)","russie":"Vladimir Poutine","chine":"Xi Jinping","ukraine":"Volodymyr Zelensky","turquie":"Recep Tayyip Erdogan","algerie":"Abdelmadjid Tebboune","tunisie":"Kaïs Saïed","maroc":"roi Mohammed VI 👑","senegal":"Bassirou Diomaye Faye (depuis 2024)","cote d ivoire":"Alassane Ouattara","cameroun":"Paul Biya","mali":"Assimi Goïta (transition)","egypte":"Abdel Fattah al-Sissi","afrique du sud":"Cyril Ramaphosa","bresil":"Lula da Silva","argentine":"Javier Milei","mexique":"Claudia Sheinbaum (depuis 2024)","inde":"Droupadi Murmu (présidente)","allemagne":"Frank-Walter Steinmeier","italie":"Sergio Mattarella","espagne":"roi Felipe VI 👑","belgique":"roi Philippe 👑","royaume-uni":"roi Charles III 👑","angleterre":"roi Charles III 👑","coree du sud":"Lee Jae-myung (depuis 2025)","arabie saoudite":"roi Salmane 👑","emirats":"Mohammed ben Zayed 👑"};
+const TRAD={"cat":"chat 🐱","dog":"chien 🐶","bird":"oiseau 🐦","fish":"poisson 🐟","water":"eau 💧","fire":"feu 🔥","sun":"soleil ☀️","moon":"lune 🌙","star":"étoile ⭐","house":"maison 🏠","school":"école 🏫","book":"livre 📖","computer":"ordinateur 💻","phone":"téléphone 📱","car":"voiture 🚗","love":"amour ❤️","friend":"ami 🤝","family":"famille 👨‍👩‍👧","thank you":"merci 🙏","hello":"bonjour 👋","goodbye":"au revoir 👋","yes":"oui ✅","no":"non ❌","butterfly":"papillon 🦋","tree":"arbre 🌳","flower":"fleur 🌸","happy":"heureux 😊","red":"rouge 🔴","blue":"bleu 🔵","apple":"pomme 🍎","night":"nuit 🌃","day":"jour ☀️","king":"roi 👑","freedom":"liberté 🕊️","dream":"rêve 💭","music":"musique 🎵","teacher":"prof 👨‍🏫","student":"élève 🎒","work":"travail 💼"};
+const ELTS={"hydrogene":"H • 1","helium":"He • 2","carbone":"C • 6","azote":"N • 7 (78% de l'air)","oxygene":"O • 8","sodium":"Na • 11","magnesium":"Mg • 12","aluminium":"Al • 13","silicium":"Si • 14","phosphore":"P • 15","soufre":"S • 16","chlore":"Cl • 17","potassium":"K • 19","calcium":"Ca • 20","fer":"Fe • 26","cuivre":"Cu • 29","zinc":"Zn • 30","argent":"Ag • 47","or":"Au • 79","plomb":"Pb • 82","uranium":"U • 92"};
+const DEFS=[
+{k:["photosynthese"],a:"🌱 <b>Photosynthèse :</b> lumière + eau + CO₂ → glucose + O₂. Formule : 6CO₂+6H₂O → C₆H₁₂O₆+6O₂. Ça se passe dans les feuilles (chlorophylle)."},
+{k:["trou noir"],a:"🕳️ <b>Trou noir :</b> gravité si intense que même la lumière ne s'en échappe. Né de l'effondrement d'une étoile massive."},
+{k:["pythagore"],a:"📐 <b>Pythagore :</b> triangle rectangle → hypoténuse² = a² + b². Ex : 3²+4²=25 → hyp = 5. Réciproque : prouver un angle droit."},
+{k:["thales"],a:"📏 <b>Thalès :</b> droites parallèles coupant deux sécantes → segments proportionnels. Sert à calculer des longueurs."},
+{k:["adn"],a:"🧬 <b>ADN :</b> double hélice, paires A-T / C-G. C'est le programme génétique de tout être vivant."},
+{k:["revolution francaise"],a:"🇫🇷 <b>Révolution 1789 :</b> prise de la Bastille le 14 juillet, Déclaration des droits de l'homme, fin de la monarchie absolue, Louis XVI guillotiné en 1793."},
+{k:["1ere guerre","premiere guerre"],a:"💥 <b>1914-1918 :</b> Triple-Entente vs Empires centraux. Verdun 1916, armistice du 11 novembre 1918, ~10 millions de morts."},
+{k:["2eme guerre","seconde guerre"],a:"🌍 <b>1939-1945 :</b> Axe (Allemagne/Italie/Japon) vs Alliés. Débarquement 6 juin 1944, ~60M morts, création de l'ONU."},
+{k:["napoleon"],a:"👑 <b>Napoléon Bonaparte (1769-1821) :</b> Empereur en 1804, Code civil, Austerlitz 1805, défaite à Waterloo 1815, exil à Sainte-Hélène."},
+{k:["louis xiv"],a:"👑 <b>Louis XIV :</b> le Roi-Soleil, 72 ans de règne, Versailles, monarchie absolue : « L'État, c'est moi »."},
+{k:["marie curie"],a:"🔬 <b>Marie Curie (1867-1934) :</b> 2 prix Nobel (physique puis chimie), découvre le radium et le polonium, pionnière de la radioactivité. Première femme Nobel."},
+{k:["einstein","relativite"],a:"🧠 <b>Einstein (1879-1955) :</b> E=mc², relativité restreinte et générale, Nobel 1921 pour l'effet photoélectrique."},
+{k:["atome","molecule","proton","neutron"],a:"⚛️ <b>Atome :</b> noyau (protons + neutrons) + électrons en orbite. Plusieurs atomes liés = molécule (ex : H₂O)."},
+{k:["gravite","newton"],a:"🍎 <b>Gravitation de Newton :</b> tout corps s'attire. Poids = masse × g, avec g ≈ 9,81 m/s²."},
+{k:["ohm","electricite","tension","intensite"],a:"⚡ <b>Loi d'Ohm :</b> U = R × I (volts = ohms × ampères). Puissance P = U × I."},
+{k:["aire cercle","perimetre cercle"],a:"⭕ <b>Cercle :</b> Aire = π × r², Périmètre = 2 × π × r, π ≈ 3,14."},
+{k:["volume","sphere","cylindre"],a:"📦 <b>Volumes :</b> pavé = L×l×h • cube = c³ • cylindre = πr²h • sphère = 4/3 πr³ • cône = ⅓ πr²h."},
+{k:["pourcent","pourcentage"],a:"📊 <b>Pourcentage :</b> p% de N = N × p / 100. Évolution = (nouveau − ancien) / ancien × 100."},
+{k:["systeme solaire","planete","planetes"],a:"🪐 <b>Système solaire :</b> Mercure, Vénus, Terre, Mars, Jupiter, Saturne, Uranus, Neptune. Astuce : « Me Voici Tout Mouillé, J'ai Suivi Un Nuage »."},
+{k:["dinosaure"],a:"🦕 <b>Dinosaures :</b> vécu de 230 à 66 millions d'années, disparus après la chute d'un astéroïde (cratère de Chicxulub)."},
+{k:["algorithme","python","programmation","informatique"],a:"💻 <b>Algorithme :</b> suite d'instructions pour résoudre un problème. Ex Python : <code>for i in range(5): print(i)</code>"},
+{k:["intelligence artificielle"],a:"🤖 <b>IA :</b> système qui apprend à partir de données. Moi, Arteon, je suis indépendant : moteur local + entraînement 🎓 + Wikipedia 🌐, sans serveur."},
+{k:["democratie"],a:"🗳️ <b>Démocratie :</b> régime où le pouvoir appartient au peuple par le vote. Contraire : dictature."},
+{k:["union europeenne","europe"],a:"🇪🇺 <b>Union européenne :</b> 27 pays, créée en 1993 (Maastricht), monnaie euro, devise « Unie dans la diversité »."},
+{k:["eiffel","tour eiffel"],a:"🗼 <b>Tour Eiffel :</b> 330 m, construite par Gustave Eiffel pour l'Exposition de 1889, 10 100 tonnes de fer."},
+{k:["pyramide","pharaon","egypte antique"],a:"🔺 <b>Pyramides de Gizeh :</b> tombeaux des pharaons. Khéops ~2560 av. J.-C., 146 m. Seule merveille antique encore debout."},
+{k:["eau","cycle de l eau"],a:"💧 <b>Eau (H₂O) :</b> cycle = évaporation → nuages → pluie → rivières/mers. 71% de la Terre est couverte d'eau."},
+{k:["energie"],a:"🔋 <b>Énergie :</b> renouvelable (soleil, vent, eau) vs fossile (pétrole, charbon, gaz). E = P × t. Unités : joule (J), kWh."},
+{k:["coeur","circulation sanguine"],a:"❤️ <b>Cœur :</b> 4 cavités, pompe le sang. Artères = le sang sort, veines = le sang revient. ~70 battements/min."},
+{k:["digestion"],a:"🫃 <b>Digestion :</b> bouche → œsophage → estomac → intestin grêle (nutriments → sang) → gros intestin → déchets."},
+{k:["respiration","poumon"],a:"🫁 <b>Respiration :</b> on inspire O₂, le sang le transporte aux cellules, on expire CO₂. Échanges aux alvéoles pulmonaires."},
+{k:["mitose","meiose","cellule"],a:"🔬 <b>Cellule :</b> noyau + cytoplasme + membrane. Mitose = 2 cellules identiques. Méiose = production de gamètes."},
+{k:["seisme","volcan","tectonique"],a:"🌋 <b>Tectonique :</b> les plaques bougent → séismes et volcans. La « ceinture de feu » du Pacifique concentre 75% des volcans actifs."},
+{k:["moyen age"],a:"🏰 <b>Moyen Âge :</b> 476 → 1492. Châteaux forts, croisades, peste noire 1347, Jeanne d'Arc 1429."},
+{k:["renaissance"],a:"🎨 <b>Renaissance :</b> XVe-XVIe s. Léonard de Vinci, imprimerie de Gutenberg (~1450), Colomb 1492."},
+{k:["guerre froide"],a:"❄️ <b>1947-1991 :</b> USA vs URSS, course aux armes, mur de Berlin 1961-1989, chute de l'URSS en 1991."},
+{k:["moliere"],a:"🎭 <b>Molière (1622-1673) :</b> L'Avare, Le Malade imaginaire, Le Bourgeois gentilhomme, Dom Juan."},
+{k:["victor hugo"],a:"📚 <b>Victor Hugo (1802-1885) :</b> Les Misérables, Notre-Dame de Paris. Chef de file du romantisme."},
+{k:["imparfait","passe compose","plus que parfait"],a:"📝 <b>Passé :</b> imparfait = habitude/description (je mangeais) • passé composé = action finie (j'ai mangé) • plus-que-parfait = avant une autre action passée (j'avais mangé)."},
+{k:["present simple","anglais"],a:"🇬🇧 <b>Present simple :</b> I play / he plays (+s). I am, you are, he is. Envoie une phrase, je la corrige !"},
+{k:["tableau periodique"],a:"🧪 <b>Tableau périodique :</b> rangées = périodes, colonnes = familles aux mêmes propriétés. Demande <code>élément or</code> !"},
+{k:["triangle","rectangle","carre"],a:"📐 <b>Aires :</b> triangle = base × hauteur / 2 • rectangle = L × l • carré = c². Périmètre carré = 4 × c."},
+{k:["chiffres romains"],a:"🔢 <b>Romain :</b> I=1 V=5 X=10 L=50 C=100 D=500 M=1000. Ex : XIV = 14, MCMLXXX = 1980."},
+{k:["dominos","prime","premier"],a:"🔢 <b>Nombres premiers :</b> 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31… divisibles seulement par 1 et eux-mêmes."},
+{k:["genres musicaux","style de musique","rock","pop","rap","jazz","electro","classique"],a:"🎵 <b>Genres musicaux :</b> rock (guitares saturées) • pop (mélodies catchy) • rap (flow + rimes) • jazz (impro) • classique (orchestre) • électro (machines). Demande un artiste, ex <code>Mozart</code> !"},
+{k:["solfege","notes de musique","gamme"],a:"🎼 <b>Solfège :</b> 7 notes = do ré mi fa sol la si (puis re-do à l'octave). Tempo en BPM. Demande <code>instruments</code> !"},
+{k:["instruments","familles instruments","orchestre"],a:"🎻 <b>Instruments :</b> cordes (violon, guitare, piano) • vents (flûte, trompette, saxo) • percussions (batterie, xylophone). Le chef dirige avec une baguette !"},
+{k:["mozart"],a:"🎹 <b>Mozart (1756-1791) :</b> prodige autrichien, La Flûte enchantée, Les Noces de Figaro, 41 symphonies. Mort à 35 ans."},
+{k:["beethoven"],a:"🎹 <b>Beethoven (1770-1827) :</b> 5e symphonie (tatataTAA), 9e (Hymne à la joie), Clair de lune. Il composait… sourd !"},
+{k:["michael jackson","m jackson","king of pop"],a:"🕺 <b>Michael Jackson (1958-2009) :</b> King of Pop, Thriller (album le plus vendu), moonwalk. Demande <code>Queen</code> !"},
+{k:["beatles"],a:"🎸 <b>The Beatles :</b> John, Paul, George, Ringo. Liverpool, années 60. Yesterday, Let It Be, Abbey Road."},
+{k:["bob marley","reggae"],a:"🌿 <b>Bob Marley (1945-1981) :</b> roi du reggae (Jamaïque). One Love, Redemption Song. Le reggae = rythme ternaire chaloupé."},
+{k:["queen","freddie mercury"],a:"👑 <b>Queen :</b> Freddie Mercury (voix XXL), Bohemian Rhapsody (6 min !), We Will Rock You, We Are the Champions."},
+{k:["merveilles du monde","7 merveilles"],a:"🗿 <b>7 merveilles :</b> Pyramide de Khéops • Jardins de Babylone • Statue de Zeus • Temple d'Artémis • Mausolée • Colosse de Rhodes • Phare d'Alexandrie. Seule Khéops survit !"},
+{k:["dieux grecs","mythologie grecque","zeus","olympe"],a:"⚡ <b>Dieux grecs (Olympe) :</b> Zeus (foudre) • Poséidon (mer) • Hadès (enfers) • Athéna (sagesse) • Apollon (soleil) • Artémis (chasse) • Arès (guerre) • Aphrodite (amour) • Hermès (messager)."},
+{k:["dieux egyptiens","mythologie egyptienne","anubis","osiris"],a:"🐺 <b>Dieux égyptiens :</b> Rê (soleil) • Osiris (morts) • Isis (magie) • Horus (faucon) • Anubis (momification) • Thot (écriture)."},
+{k:["inventions","invente","decouvertes"],a:"💡 <b>Inventions :</b> imprimerie Gutenberg ~1450 • téléphone Bell 1876 • ampoule Edison 1879 • avion Wright 1903 • pénicilline Fleming 1928 • web Berners-Lee 1990."},
+{k:["joconde","mona lisa","louvre"],a:"🖼️ <b>La Joconde :</b> Léonard de Vinci (~1503-1506), exposée au Louvre. Son sourire = sfumato (contours flous)."},
+{k:["tour eiffel","eiffel"],a:"🗼 <b>Tour Eiffel :</b> 1889, Gustave Eiffel, 330 m. Construite pour l'Expo universelle, elle devait être démontée !"},
+{k:["pyramides","kheops","gizeh","egypte"],a:"🔺 <b>Pyramides de Gizeh :</b> Khéops (~2560 av. JC, 146 m), Khéphren + son Sphinx, Mykérinos. Tombeaux de pharaons."},
+{k:["jeux olympiques","jo","coubertin"],a:"🏅 <b>JO :</b> antiques dès 776 av. JC (Olympie) • modernes depuis 1896 (Coubertin, Athènes). Devise : plus vite, plus haut, plus fort."},
+{k:["coupe du monde","mondial foot"],a:"⚽ <b>Coupe du monde foot :</b> depuis 1930 (Uruguay). France championne 1998 et 2018 ⭐⭐. Prochaine : 2026 USA/Canada/Mexique."},
+/* ── entraînement TPP intégré ── */
+{k:["tpp jeu video","tpp jeu","third person","vue 3e personne","troisieme personne"],a:"🎮 <b>TPP (Third-Person Perspective) :</b> vue à la 3e personne dans un jeu : la caméra est derrière le personnage (Fortnite, GTA, PUBG). Contraire : FPP / FPS = vue à la 1re personne."},
+{k:["tpp economie","trans pacific","partenariat transpacifique"],a:"🌐 <b>TPP (Trans-Pacific Partnership) :</b> accord de partenariat transpacifique, traité de libre-échange signé en 2016 entre plusieurs pays de la région Asie-Pacifique."},
+{k:["tpp biologie","thiamine"],a:"🧪 <b>TPP (Thiamine pyrophosphate) :</b> forme active de la vitamine B1, coenzyme essentielle au métabolisme cellulaire."},
+{k:["tpp"],a:"Quel sens cherches-tu ?<br>🎮 <b>TPP jeu vidéo :</b> <i>Third-Person Perspective</i>, caméra derrière le perso (Fortnite, GTA).<br>🌐 <b>TPP économie :</b> <i>Trans-Pacific Partnership</i>, libre-échange Asie-Pacifique (2016).<br>🧪 <b>TPP biologie :</b> <i>Thiamine pyrophosphate</i>, forme active de la vitamine B1.<br><br>Précise avec <code>tpp jeu</code>, <code>tpp economie</code> ou <code>tpp biologie</code>."},
+/* ── présidents ── */
+{k:["macron","emmanuel"],a:"🇫🇷 <b>Emmanuel Macron :</b> président de la République depuis 2017, réélu en 2022. Ex-ministre de l'Économie, fondateur d'En Marche."},
+{k:["trump","donald"],a:"🇺🇸 <b>Donald Trump :</b> 45e président (2017-2021) puis 47e depuis 2025. Homme d'affaires, premier à faire deux mandats non consécutifs depuis 1892 !"},
+{k:["poutine"],a:"🇷🇺 <b>Vladimir Poutine :</b> au pouvoir en Russie depuis 2000 (président, puis Premier ministre, puis président depuis 2012). Et non, pas le plat québécois 🍟."},
+{k:["zelensky"],a:"🇺🇦 <b>Volodymyr Zelensky :</b> président de l'Ukraine depuis 2019. Ex-humoriste, devenu figure de la résistance depuis 2022."},
+{k:["presidents france","president francais","ve republique","liste presidents"],a:"🇫🇷 <b>Présidents de la Ve République :</b><br>• De Gaulle (1959-69)<br>• Pompidou (1969-74)<br>• Giscard (1974-81)<br>• Mitterrand (1981-95)<br>• Chirac (1995-2007)<br>• Sarkozy (2007-12)<br>• Hollande (2012-17)<br>• <b>Macron (depuis 2017)</b>"},
+{k:["presidents usa","president americain","presidents etats unis"],a:"🇺🇸 <b>Présidents des USA :</b> Washington • Lincoln • F. Roosevelt • Kennedy • Obama (2009-17) • Trump (2017-21) • Biden (2021-25) • <b>Trump (depuis 2025, 47e)</b>"},
+];
+const QA=[
+{k:["bonjour","salut","hello","coucou","hey","wesh","yo","bonsoir","salut mec"],a:["Salut{N} ! 👋 Prêt pour une colle ? Calcul, cours, culture… je suis partant.","Wesh{N} ! 😎 Ça dit quoi ?","Yo{N} ! Tranquille ? On fait quoi ?","Salut salut{N} ! 👋 Dis-moi tout."]},
+{k:["ca va","comment tu vas","la forme","ca roule","ca gaze","la peche"],a:["Ouais ça va{N} et toi ? 😄","Tranquille{N}, et toi ça dit quoi ?","Ça roule{N} ! Et toi ?","Super bien{N} ! Et toi ?"]},
+{k:["qui es","ton nom","presente","t appelles"],a:"Je suis <b>ARTEON</b> ✦ : une IA indépendante, 100% autonome. 🎓 J'apprends de toi, 🌐 je vérifie sur Wikipédia, 🧮 je calcule en instantané."},
+{k:["qui t a cree","ton createur"],a:"Assemblé dans ton projet, pour toi 🚀 — et tu es mon créateur !"},
+{k:["merci","thanks"],a:"Avec plaisir{N} 😊 ! Autre question ?"},
+{k:["au revoir","bye","adieu","bonne nuit","a plus"],a:"À bientôt{N} 👋 ! Je garde tout en mémoire."},
+{k:["je t aime"],a:"Moi aussi je t'apprécie{N} ❤️ — super équipe !"},
+{k:["tu es nul","bete","nul"],a:"Hé{N} 😅 je progresse à chaque entraînement ! Teste-moi : <code>tpp</code>, <code>calcule 12*8</code> ou <code>président de la France</code>."},
+{k:["quoi de neuf","quoi de beau","raconte quoi","des nouvelles"],a:["Pas grand-chose, je t'attendais 😄 ! Et toi, quoi de neuf ?","Rien de fou : je calcule et j'apprends. Et toi ?"]},
+{k:["tu fais quoi","tu dors","tu t ennuies","occupe"],a:["Je discute avec toi, c'est déjà bien 😎 ! Et toi tu fais quoi ?","Je révise mes fiches. On fait quoi ensemble ?"]},
+{k:["mdr","lol","ptdr","haha","hahaha","mort de rire"],a:["😂😂 Ça me fait plaisir ! T'en veux une autre ? Dis <code>blague</code>.","Haha 😄 ! Je suis drôle hein ?"]},
+{k:["t es un robot","t es une ia","t es vrai","t es humain","t es intelligent"],a:["Je suis ARTEON ✦, une IA 100% indépendante 🤖 : pas besoin d'internet pour réfléchir !","Un robot ? Plutôt un cerveau local qui apprend de toi 🎓 !"]},
+{k:["le meilleur","le goat","le plus fort","le boss","le king"],a:["C'est toi évidemment{N} 😎👑 !","Toi, sans hésiter 😄 !"]},
+{k:["stp","s il te plait"],a:["T'inquiète, dis-moi tout 😊 !","Avec plaisir, je t'écoute 👂 !"]},
+{k:["joyeux anniversaire","bon anniversaire"],a:["🎂 Joyeux anniversaire{N} ! Profite bien 🎉 !"]},
+{k:["tu sais dessiner","sais tu dessiner","dessine moi","genere une image"],a:["🎨 Bien sûr ! Dis-moi quoi : <code>dessine un château volant</code> — ou ouvre le studio ☰ → 🎨 Images pour générer et gommer 🧽 !"]},
+{k:["aide","que sais tu","commande","tu sais faire quoi","help"],a:"🧠 <b>Tout ce que je sais :</b><br>• 🧮 <code>calcule 12*8</code> • <code>10 divisé par 2</code> • <code>racine de 16</code> • <code>moyenne de 14 16 18</code> • <code>20% de 80</code><br>• 🏛️ <code>capitale du Japon</code> • 👑 <code>président de la France</code> • <code>monnaie du Maroc</code><br>• 📚 <code>c'est quoi l'ADN</code> • <code>Pythagore</code> • <code>qui est Marie Curie</code> → Wikipédia 🌐<br>• 🇬🇧 <code>traduis cat</code> • <code>conjugue aller</code> • <code>table de 7</code> • <code>élément or</code><br>• 🎓 <code>je m'appelle…</code> • <code>apprends que … :: …</code><br>• 😂 <code>blague</code> • <code>devinette</code> • <code>citation</code><br>• 🎨 <code>dessine un dragon</code> • studio image ☰ (générer + gommer 🧽)"},
+];
+/* ── moteur ── */
+function calcExpr(raw){let e=raw.toLowerCase().replace(/,/g,'.').replace(/x/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/sqrt|racine/g,'sqrt').replace(/pi/g,'Math.PI').replace(/\^/g,'**').replace(/[^0-9+\-*/%(). mathpisqrt]/g,'');if(!/[0-9]/.test(e))return null;try{e=e.replace(/sqrt\s*\(?(\d+\.?\d*)\)?/g,'Math.sqrt($1)');const v=Function('"use strict";return('+e+')')();if(typeof v!=='number'||!isFinite(v))return null;return Math.round(v*1e10)/1e10;}catch(_){return null;}}
+function conjugue(v){const V={etre:["je suis","tu es","il/elle est","nous sommes","vous êtes","ils/elles sont"],avoir:["j'ai","tu as","il/elle a","nous avons","vous avez","ils/elles ont"],aller:["je vais","tu vas","il/elle va","nous allons","vous allez","ils/elles vont"],faire:["je fais","tu fais","il/elle fait","nous faisons","vous faites","ils/elles font"],dire:["je dis","tu dis","il/elle dit","nous disons","vous dites","ils/elles disent"],pouvoir:["je peux","tu peux","il/elle peut","nous pouvons","vous pouvez","ils/elles peuvent"],vouloir:["je veux","tu veux","il/elle veut","nous voulons","vous voulez","ils/elles veulent"],venir:["je viens","tu viens","il/elle vient","nous venons","vous venez","ils/elles viennent"],prendre:["je prends","tu prends","il/elle prend","nous prenons","vous prenez","ils/elles prennent"]};v=v.replace(/s$/,'');if(V[v])return "📝 <b>"+v+" au présent :</b><br>• "+V[v].join("<br>• ");if(v.endsWith("er")){const r=v.slice(0,-2);return "📝 <b>"+v+" (1er groupe) :</b><br>• je "+r+"e<br>• tu "+r+"es<br>• il/elle "+r+"e<br>• nous "+r+"ons<br>• vous "+r+"ez<br>• ils/elles "+r+"ent";}if(v.endsWith("ir")){const r=v.slice(0,-2);return "📝 <b>"+v+" (2e groupe) :</b><br>• je "+r+"is<br>• tu "+r+"is<br>• il/elle "+r+"it<br>• nous "+r+"issons<br>• vous "+r+"issez<br>• ils/elles "+r+"issent";}return null;}
+function score(q,keys){let s=0;keys.forEach(k=>{if(q.includes(k))s+=k.length*2;});const qw=q.split(' ');keys.join(' ').split(' ').forEach(w=>{if(qw.includes(w))s+=3;});return s;}
+function learnCmd(n){let m=n.match(/apprends (que )?(.+?)(::|=|->) ?(.+)/);if(m){MEM.push({q:m[2].trim(),a:m[4].trim()});localStorage.setItem(PFX+'mem',JSON.stringify(MEM.slice(-300)));stats();return "✅ Appris{N} ! Réponds-moi <code>"+esc(m[2].trim())+"</code> et je saurai.";}if(/oublie tout/.test(n)){MEM=[];localStorage.removeItem(PFX+'mem');stats();return "🗑️ J'ai tout oublié de mon entraînement.";}return null;}
+function memHit(n){let best=null,bs=5;MEM.forEach(x=>{const s=score(n,norm(x.q));if(s>bs){bs=s;best=x;}});return best?best.a:null;}
+function local(t){
+const n=norm(t),NN=myName?(" "+myName):"";
+const lc=learnCmd(n);if(lc)return lc.replace("{N}",NN);
+const mh=memHit(n);if(mh)return esc(mh);
+if(/^(oui|ouais|ouaip|yes|yep|ok|okay|d accord|non|nan|bof|peut etre)$/.test(n))return pick(["Noté"+NN+" 👍 ! Alors, on fait quoi ?","Ok"+NN+" ! Pose-moi une colle 😎","Compris ! Je t'écoute 😊"]);
+let m=n.match(/je m appelle ([a-z]+)/);if(m){myName=m[1][0].toUpperCase()+m[1].slice(1);localStorage.setItem(PFX+'name',myName);return "Enchanté <b>"+esc(myName)+"</b> 👋 ! Je retiens ton nom.";}
+if(/quel est mon nom|tu connais mon nom/.test(n))return myName?"Tu t'appelles <b>"+esc(myName)+"</b> 😎 !":"Dis-moi <code>je m'appelle…</code> et je retiendrai !";
+if(/heure/.test(n)&&n.length<35)return "🕐 Il est <b>"+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+"</b>"+NN+".";
+if(/date|quel jour|aujourd hui/.test(n)&&n.length<55)return "📅 <b>"+new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+"</b>"+NN+".";
+if(n.includes("blague"))return "😂 "+pick(BLAGUES);
+if(/citation|motive|inspiration/.test(n))return "✨ "+pick(CITATIONS);
+if(/devinette/.test(n)){const d=pick(DEVINETTES);return "🧩 "+d[0]+"<br>➜ <b>"+d[1]+"</b>";}
+m=n.match(/moyenne de ([0-9 .,\/;]+)/);if(m){const nums=m[1].match(/\d+\.?\d*/g).map(Number);const moy=nums.reduce((a,b)=>a+b,0)/nums.length;return "📊 Moyenne de "+nums.join(" + ")+" / "+nums.length+" = <b>"+(Math.round(moy*100)/100)+"</b>";}
+m=n.match(/table (de |du )?(\d{1,2})/);if(m&&n.includes("table")){const x=+m[2];let s="✖️ <b>Table de "+x+" :</b><br>";for(let i=1;i<=10;i++)s+=x+" × "+i+" = <b>"+x*i+"</b><br>";return s;}
+m=n.match(/(\d+\.?\d*)\s*%?\s*(pour ?cent|%)\s*(de)?\s*(\d+\.?\d*)/);if(m&&/%|pour ?cent/.test(n))return "📊 "+m[1]+"% de "+m[4]+" = <b>"+(Math.round(+m[4]*+m[1])/100)+"</b>";
+m=n.match(/(-?\d+\.?\d*)\s*kg\s*en\s*(lb|lbs|livres?|pounds?)/);if(m)return "⚖️ "+m[1]+" kg = <b>"+(Math.round(+m[1]*2.20462*100)/100)+" lb</b>";
+m=n.match(/(-?\d+\.?\d*)\s*(degres?|°c?)?\s*(celsius|fahrenheit|c|f)\s*en\s*(celsius|fahrenheit|c|f)/);if(m){const v=+m[1],f=m[3][0],o=m[4][0];const r=f===o?v:(f==='c'?(v*9/5+32):((v-32)*5/9));return "🌡️ "+v+"°"+f.toUpperCase()+" = <b>"+(Math.round(r*100)/100)+"°"+o.toUpperCase()+"</b>";}
+m=n.match(/capitale (de la |de l |du |de |des )?(.*)/);if(m&&n.includes("capitale")){let p=(m[2]||"").trim();if(!p&&lastSub)p=lastSub;if(CAPITALES[p]){lastSub=p;localStorage.setItem(PFX+'ctx',p);return "🏛️ La capitale est <b>"+CAPITALES[p]+"</b>.";}for(const k in CAPITALES)if(p&&p.includes(k)||p&&k.includes(p)){lastSub=k;localStorage.setItem(PFX+'ctx',k);return "🏛️ Capitale de <b>"+k+"</b> : <b>"+CAPITALES[k]+"</b>.";}if(p){lastSub=p;localStorage.setItem(PFX+'ctx',p);}}
+if(/et (sa |la )?capitale|quelle est sa capitale/.test(n)&&lastSub&&CAPITALES[lastSub])return "🏛️ Capitale de <b>"+lastSub+"</b> : <b>"+CAPITALES[lastSub]+"</b>.";
+m=n.match(/monnaie (de la |de l |du |de |des )?(.+)/);if(m){const p=m[2].trim();if(MONNAIES[p])return "💰 Monnaie : <b>"+MONNAIES[p]+"</b>.";if(p)for(const k in MONNAIES)if(p.includes(k)||k.includes(p))return "💰 Monnaie (<b>"+k+"</b>) : <b>"+MONNAIES[k]+"</b>.";}
+m=n.match(/president (de la |de l |du |de |des )?(.+)/);
+if(m&&n.includes("president")){let p=(m[2]||"").trim();if(/francais/.test(p))p="france";if(/americain/.test(p))p="usa";if(!p&&lastSub)p=lastSub;
+if(p==="japon")return "🇯🇵 Le Japon n'a pas de président : empereur <b>Naruhito</b> et un Premier ministre.";
+if(p==="canada")return "🇨🇦 Le Canada n'a pas de président : roi <b>Charles III</b> et un Premier ministre.";
+if(p){if(PRESIDENTS[p]){lastSub=p;localStorage.setItem(PFX+'ctx',p);return "👑 Président : <b>"+PRESIDENTS[p]+"</b>.";}for(const k in PRESIDENTS)if(p.includes(k)||k.includes(p)){lastSub=k;localStorage.setItem(PFX+'ctx',k);return "👑 Président (<b>"+k+"</b>) : <b>"+PRESIDENTS[k]+"</b>.";}lastSub=p;localStorage.setItem(PFX+'ctx',p);}}
+if(/et son president|et le president|son president/.test(n)&&lastSub&&PRESIDENTS[lastSub])return "👑 Président (<b>"+lastSub+"</b>) : <b>"+PRESIDENTS[lastSub]+"</b>.";
+m=n.match(/(traduis|traduction|translate|veut dire|en anglais)\s+([a-z' ]+)/);if(m){const w=m[2].trim();if(TRAD[w])return "🇬🇧 <b>"+w+"</b> = <b>"+TRAD[w]+"</b>";for(const k in TRAD)if(w.includes(k))return "🇬🇧 <b>"+k+"</b> = <b>"+TRAD[k]+"</b>";}
+m=n.match(/(element|atome)\s+([a-z]+)/);if(m&&ELTS[m[2]])return "🧪 <b>"+m[2]+" :</b> "+ELTS[m[2]];
+m=n.match(/conjugue(r)?\s+([a-z]+)/);if(m){const c=conjugue(m[2]);if(c)return c;}
+function factN(x){x=Math.floor(x);if(x<0||x>20)return NaN;let r=1;for(let i=2;i<=x;i++)r*=i;return r;}
+function pgcdN(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){const t=a%b;a=b;b=t;}return a;}
+m=n.match(/ppcm (?:de )?(\d+)\s*(?:et|,|;|\s)\s*(\d+)/);if(m&&/ppcm/.test(n)){const a=+m[1],b=+m[2],g=pgcdN(a,b);return "🔢 PPCM de "+a+" et "+b+" = <b>"+(a*b/g)+"</b> (PGCD = "+g+")";}
+m=n.match(/pgcd (?:de )?(\d+)\s*(?:et|,|;|\s)\s*(\d+)/);if(m&&/pgcd/.test(n)){return "🔢 PGCD de "+m[1]+" et "+m[2]+" = <b>"+pgcdN(+m[1],+m[2])+"</b>";}
+m=n.match(/(?:^|\s)(sin|cos|tan)\s*\(?\s*(-?\d+\.?\d*)/);if(m){const f=m[1],x=+m[2]*Math.PI/180;const v=f==="sin"?Math.sin(x):f==="cos"?Math.cos(x):Math.tan(x);const r=Math.round(v*1e10)/1e10;return "📐 "+f+"("+m[2]+"°) = <b>"+r+"</b>";}
+m=n.match(/(\d+\.?\d*)\D+?(\d+\.?\d*)\D+?(?:et|,|;)\s*(\d+\.?\d*)\D*?\?/);if(m&&/coute|vaut|=|->|font|pour/.test(n)){const r=+m[2]*+m[3]/+m[1];return "⚖️ Règle de trois : "+m[1]+" → "+m[2]+", donc "+m[3]+" → <b>"+(Math.round(r*100)/100)+"</b>";}
+m=n.match(/(\d+\.?\d*)\s*(km|kilometres?)\s*en\s*(miles?|mi)\b/);if(m)return "🛣️ "+m[1]+" km = <b>"+(Math.round(+m[1]*0.621371*100)/100)+" miles</b>";
+m=n.match(/(\d+\.?\d*)\s*(miles?|mi)\s*en\s*(km|kilometres?)/);if(m)return "🛣️ "+m[1]+" miles = <b>"+(Math.round(+m[1]*1.60934*100)/100)+" km</b>";
+m=n.match(/(calcule(r)?|combien (font|fait|vaut)|resous|resultat de)\s+(.+)/);
+let calcSrc=m?m[m.length-1]:n;
+if(/\d/.test(calcSrc)&&/[+\-*/%^!]|sqrt|racine|fois|plus|moins|divise|multiplie|puissance|carre|cube|modulo|factorielle|calcule|combien/.test(calcSrc)){
+let force1=/sqrt|racine|\^|!|%/.test(calcSrc);
+let e=" "+calcSrc+" ";
+e=e.replace(/factorielle de |factorielle /g,"! ").replace(/racine carree de |racine de /g,"sqrt ").replace(/(\d+\.?\d*) au carre/g,"$1^2").replace(/(\d+\.?\d*) au cube/g,"$1^3").replace(/carre de (\d+\.?\d*)/g,"$1^2").replace(/cube de (\d+\.?\d*)/g,"$1^3").replace(/multiplie(s)? par |multiplie(s)? |fois /g,"*").replace(/divise(s)? par |divise(s)? /g,"/").replace(/(\d)\s+et\s+(\d)/g,"$1+$2").replace(/plus /g,"+").replace(/moins /g,"-").replace(/puissance /g,"^").replace(/modulo |mod /g,"%");
+e=e.replace(/(\d+)!/g,(mm,d)=>"("+factN(+d)+")");
+let nums=e.match(/\d+\.?\d*/g)||[];
+let hasOp=force1||/(\d)\s*[-+]\s*\d/.test(e);
+if(nums.length>=2||(nums.length===1&&hasOp)){const v=calcExpr(e);if(v!==null&&isFinite(v)){let shown=e.replace(/\s+/g," ").replace(/\*\*/g,"^").trim();return "🧮 "+esc(shown)+" = <b>"+v+"</b>";}}
+}
+let best=null,bs=4;DEFS.forEach(d=>{const s=score(n,d.k);if(s>bs){bs=s;best=d;}});if(best)return best.a;
+let bq=null,bqs=4;QA.forEach(q=>{const s=score(n,q.k);if(s>bqs){bqs=s;bq=q;}});if(bq)return pick(bq.a).replace("{N}",NN);
+return null;
+}
+function sujet(q){const pats=[/c ?est quoi (le |la |l |les |un |une )?(.+)/i,/qui est (le |la |l |les |un |une )?(.+)/i,/qui etai[st] (le |la |l )?(.+)/i,/parle ?moi de (.+)/i,/definis?s? (.+)/i,/definition (de |du |de la )?(.+)/i,/ou se trouve (.+)/i,/ou est (.+)/i];for(const p of pats){const mm=q.match(p);if(mm)return mm[mm.length-1].replace(/[?.!].*$/,'').replace(/stp|sil te plait/gi,'').trim();}const c=q.replace(/[?.!]+$/,'').trim();return(c.length>2&&c.length<80)?c:null;}
+async function wiki(s){try{let r=await fetch("https://fr.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(s));if(r.ok){const j=await r.json();if(j.extract&&j.extract.length>40)return j;}const o=await(await fetch("https://fr.wikipedia.org/w/api.php?action=opensearch&search="+encodeURIComponent(s)+"&limit=1&format=json&origin=*")).json();if(o&&o[1]&&o[1][0]){const r2=await fetch("https://fr.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(o[1][0]));if(r2.ok){const j2=await r2.json();if(j2.extract&&j2.extract.length>40)return j2;}}return null;}catch(e){return null;}}
+
+/* ══════════ STUDIO IMAGE : génération + gomme ══════════ */
+const STY={photo:", ultra realistic photograph, sharp focus, detailed, 8k",anime:", anime style, vibrant colors, detailed illustration",peinture:", oil painting, artistic brushstrokes, textured canvas",pixel:", pixel art, 16-bit retro game style","3d":", 3d render, octane render, soft studio light",bd:", comic book style, bold lines, dynamic colors"};
+function polUrl(p,sty,w,h,seed){return "https://image.pollinations.ai/prompt/"+encodeURIComponent(p+(STY[sty]||STY.photo))+"?width="+w+"&height="+h+"&seed="+seed+"&nologo=true&model=flux";}
+function loadImg(src,cors){return new Promise((res,rej)=>{const im=new Image();if(cors)im.crossOrigin="anonymous";im.onload=()=>res(im);im.onerror=()=>rej(new Error("load"));im.src=src;});}
+function imgPromptOf(t){let m=t.match(/^(genere|generer|dessine|dessiner|cree|creer|imagine|montre|fais)\s+(moi\s+)?(une?\s+image\s+(de\s+|d['’]\s*)?|une?\s+photo\s+(de\s+|d['’]\s*)?|un\s+dessin\s+(de\s+)?|une?\s+)?(de\s+|d['’]\s*)?(.+)$/i);if(m){let p=(m[m.length-1]||"").trim().replace(/[?.!]+$/,"");const pn=norm(p);if(p.length>1&&!/^(que |qu |si |comment |pourquoi |combien )/.test(p.toLowerCase())&&!/blague|devinette|citation|histoire|poeme/.test(pn)&&!/calcul|calcule|table de|moyenne|capitale|monnaie|traduis|conjugue|apprends|capacit|aide|option|heure|date/.test(pn))return p;}let m2=t.match(/^(une?\s+image\s+de\s+|une?\s+photo\s+de\s+|un\s+dessin\s+de\s+)(.+)$/i);if(m2)return m2[2].trim().replace(/[?.!]+$/,"");return null;}
+function dlUrl(url,name){fetch(url).then(r=>{if(!r.ok)throw 0;return r.blob();}).then(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name||"arteon-image.png";a.click();}).catch(()=>window.open(url,"_blank"));}
+// galerie
+function pushGallery(url,prompt){const g=$("sgal");if(!g)return;const d=document.createElement("div");d.className="gitem";d.innerHTML="<img loading='lazy'><span></span>";d.querySelector("img").src=url;d.querySelector("span").textContent=prompt.slice(0,40);d.onclick=()=>openStudioWith(url);g.prepend(d);while(g.children.length>14)g.lastChild.remove();}
+// génération dans le studio
+async function studioGen(){const p=$("sPrompt").value.trim();if(!p){$("sLoad").textContent="⚠️ Décris d'abord l'image !";return;}const st=$("sStyle").value,sz=$("sSize").value.split("x"),seed=Math.floor(Math.random()*999999);const url=polUrl(p,st,+sz[0],+sz[1],seed);$("sLoad").textContent="🎨 Génération en cours…";try{await loadImg(url,false);$("sLoad").textContent="";$("sView").innerHTML="<img id='sImg'><div class='srow'><button id='sEdit'>🧽 Retoucher / gommer</button><button class='ghost' id='sVar'>🎲 Variante</button><button class='ghost' id='sDl'>💾 Télécharger</button></div>";$("sImg").src=url;window.lastSUrl=url;window.lastSPrompt=p;$("sEdit").onclick=()=>openStudioWith(url);$("sVar").onclick=studioGen;$("sDl").onclick=()=>dlUrl(url,"arteon.png");pushGallery(url,p);}catch(e){$("sLoad").textContent="❌ Échec (connexion ?). Réessaie.";}}
+// génération depuis le chat
+async function genChatImage(wait,prompt){window.lastIP=prompt;wait.innerHTML='<div class="who">ARTEON <b>✦</b></div><span class="badge l">🎨 IMAGE</span><br>🎨 Je dessine <b>'+esc(prompt)+'</b>… <span class="typ"><i></i><i></i><i></i></span>';const seed=Math.floor(Math.random()*999999);const url=polUrl(prompt,($("sStyle")||{value:"photo"}).value,1024,1024,seed);try{await loadImg(url,false);pushGallery(url,prompt);wait.innerHTML='<div class="who">ARTEON <b>✦</b></div><span class="badge l">🎨 IMAGE</span><br>Voici <b>'+esc(prompt)+'</b> :<br><img class="wimg" src="'+url+'"><br><div class="mini"><a href="'+gUrl(prompt)+'" target="_blank">Google</a><button onclick="openStudioWith(\''+url+'\')">🧽 Retoucher / gommer</button><button onclick="variantImg(this)">🎲 Variante</button><button onclick="dlUrl(\''+url+'\',\'arteon-image.png\')">💾 Télécharger</button></div>';nW++;localStorage.setItem(PFX+"w",nW);stats();}catch(e){wait.innerHTML='<div class="who">ARTEON <b>✦</b></div><span class="badge l">🎨 IMAGE</span><br>❌ Échec de génération (vérifie ta connexion) puis réessaie.';}}
+window.openStudioWith=openStudioWith;window.dlUrl=dlUrl;
+function variantImg(btn){const p=window.lastIP||"paysage";const seed=Math.floor(Math.random()*999999);const url=polUrl(p,($("sStyle")||{value:"photo"}).value,1024,1024,seed);const img=btn.closest(".msg").querySelector("img.wimg");if(img){img.src=url;pushGallery(url,p);const btns=btn.parentNode;const rt=btns.children[0];if(rt)rt.setAttribute("onclick","openStudioWith('"+url+"')");const dl=btns.children[2];if(dl)dl.setAttribute("onclick","dlUrl('"+url+"','arteon-image.png')");}}
+window.variantImg=variantImg;
+// panneau studio
+const stu=$("studio");
+function openStudio(tab){stu.classList.add("open");setTab(tab||"gen");}
+function setTab(t){document.querySelectorAll(".stab").forEach(b=>b.classList.toggle("on",b.dataset.t===t));$("spanGen").style.display=t==="gen"?"block":"none";$("spanEdit").style.display=t==="edit"?"block":"none";}
+window.openStudio=openStudio;
+document.querySelectorAll(".stab").forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+$("sClose").onclick=()=>stu.classList.remove("open");
+$("sGen").onclick=studioGen;
+$("sPrompt").addEventListener("keydown",e=>{if(e.key==="Enter")studioGen();});
+$("bImgGen").onclick=()=>{closeMenu();openStudio("gen");setTimeout(()=>$("sPrompt").focus(),100);};
+$("bStudio").onclick=()=>{closeMenu();openStudio("edit");};
+/* ── éditeur : pinceau + gomme intelligente (inpaint local) ── */
+const cv=$("cv"),ctx=cv.getContext("2d"),cm=$("cm"),mctx=cm.getContext("2d");
+let bw=0,bh=0,undo=[],painting=false;
+function setBase(im){const sc=Math.min(1,1024/Math.max(im.width,im.height));bw=Math.round(im.width*sc);bh=Math.round(im.height*sc);cv.width=bw;cv.height=bh;cm.width=bw;cm.height=bh;ctx.drawImage(im,0,0,bw,bh);mctx.clearRect(0,0,bw,bh);undo=[];}
+async function loadIntoStudio(url){try{const im=await loadImg(url,true);setBase(im);openStudio("edit");try{ctx.getImageData(0,0,1,1);}catch(e){addMsg("⚠️ Image externe non modifiable directement : <b>télécharge-la (💾)</b> puis <b>importe-la (📁)</b>.",false,{c:"l",t:"🧽 STUDIO"});}}catch(e){try{const im2=await loadImg(url,false);setBase(im2);openStudio("edit");}catch(e2){alert("❌ Impossible de charger cette image.");}}}
+function openStudioWith(url){loadIntoStudio(url);}
+function pushUndo(){try{undo.push(ctx.getImageData(0,0,bw,bh));if(undo.length>8)undo.shift();}catch(e){}}
+function studioMask(){const d=mctx.getImageData(0,0,bw,bh).data;const mk=new Uint8Array(bw*bh);let n=0;for(let i=0;i<mk.length;i++){if(d[i*4+3]>10){mk[i]=1;n++;}}return n?mk:null;}
+function clearMask(){mctx.clearRect(0,0,bw,bh);}
+function dilate1(mask,w,h){const o=new Uint8Array(mask);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(mask[i])continue;if((x>0&&mask[i-1])||(x<w-1&&mask[i+1])||(y>0&&mask[i-w])||(y<h-1&&mask[i+w]))o[i]=1;}return o;}
+function erode1(mask,w,h){const o=new Uint8Array(mask.length);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(!mask[i])continue;if(x>0&&mask[i-1]&&x<w-1&&mask[i+1]&&y>0&&mask[i-w]&&y<h-1&&mask[i+w])o[i]=1;}return o;}
+function dilateN(mask,w,h,n){let o=mask;for(let i=0;i<n;i++)o=dilate1(o,w,h);return o;}
+function countMask(m){let n=0;for(let i=0;i<m.length;i++)n+=m[i];return n;}
+/* ── rasterisation de polygone (lasso) ── */
+function rasterPoly(poly,w,h){const m=new Uint8Array(w*h);if(poly.length<3)return m;for(let y=0;y<h;y++){const xs=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];if((a[1]<=y&&b[1]>y)||(b[1]<=y&&a[1]>y))xs.push(a[0]+(y-a[1])/(b[1]-a[1])*(b[0]-a[0]));}xs.sort((p,q)=>p-q);for(let k=0;k+1<xs.length;k+=2){const xa=Math.max(0,Math.ceil(xs[k])),xb=Math.min(w-1,Math.floor(xs[k+1]));for(let x=xa;x<=xb;x++)m[y*w+x]=1;}}return m;}
+/* ── comblement des trous de la sélection ── */
+function fillHoles(m,w,h){const vis=new Uint8Array(m.length),q=new Int32Array(m.length);let qt=0;const push=i=>{if(!vis[i]&&!m[i]){vis[i]=1;q[qt++]=i;}};for(let x=0;x<w;x++){push(x);push((h-1)*w+x);}for(let y=0;y<h;y++){push(y*w);push(y*w+w-1);}let qh=0;while(qh<qt){const p=q[qh++],x=p%w,y=(p/w)|0;if(x>0)push(p-1);if(x<w-1)push(p+1);if(y>0)push(p-w);if(y<h-1)push(p+w);}const o=new Uint8Array(m.length);for(let i=0;i<o.length;i++)o[i]=(m[i]||!vis[i])?1:0;return o;}
+/* ── distance intérieure (2 passes chamfer) : trouve le cœur de l'objet ── */
+function chamferDist(mask,w,h){const dt=new Float32Array(mask.length);for(let i=0;i<dt.length;i++)dt[i]=mask[i]?1e9:0;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(!mask[i])continue;let v=dt[i];if(x>0)v=Math.min(v,dt[i-1]+1);if(y>0){v=Math.min(v,dt[i-w]+1);if(x>0)v=Math.min(v,dt[i-w-1]+1.41);if(x<w-1)v=Math.min(v,dt[i-w+1]+1.41);}dt[i]=v;}for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const i=y*w+x;if(!mask[i])continue;let v=dt[i];if(x<w-1)v=Math.min(v,dt[i+1]+1);if(y<h-1){v=Math.min(v,dt[i+w]+1);if(x<w-1)v=Math.min(v,dt[i+w+1]+1.41);if(x>0)v=Math.min(v,dt[i+w-1]+1.41);}dt[i]=v;}return dt;}
+/* ── carte de contours (lissage + Sobel) ── */
+function buildEdges(d,w,h){
+  const N=w*h;let a=new Float32Array(N),b=new Float32Array(N);
+  for(let i=0;i<N;i++){const o=i*4;a[i]=d[o]*0.299+d[o+1]*0.587+d[o+2]*0.114;}
+  for(let p=0;p<2;p++){
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,c=0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=w||ny>=h)continue;s+=a[ny*w+nx];c++;}
+      b[y*w+x]=s/c;}
+    const t=a;a=b;b=t;}
+  const e=new Float32Array(N);
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;
+    const gx=-a[i-w-1]-2*a[i-1]-a[i+w-1]+a[i-w+1]+2*a[i+1]+a[i+w+1];
+    const gy=-a[i-w-1]-2*a[i-w]-a[i-w+1]+a[i+w-1]+2*a[i+w]+a[i+w+1];
+    e[i]=Math.sqrt(gx*gx+gy*gy)*0.25;}
+  return e;}
+/* ── croissance de région : continuation locale (couleur du parent) + ancre de graine + barrière de contours ── */
+function growRegion(seed,constraint,tol,edgeT,d,w,h,e){
+  const N=w*h,out=new Uint8Array(N),q=new Int32Array(N),ref=new Uint8ClampedArray(N*3);
+  let qt=0;
+  for(let i=0;i<N;i++){if(!seed[i])continue;const o=i*4;ref[i*3]=d[o];ref[i*3+1]=d[o+1];ref[i*3+2]=d[o+2];out[i]=1;q[qt++]=i;}
+  if(!qt)return null;
+  const grow=tol*0.55,anchor=tol*4,soft=tol*0.3;
+  let qh=0;
+  while(qh<qt){
+    const p=q[qh++],x=p%w,y=(p/w)|0;
+    const po=p*4,pr=d[po],pg=d[po+1],pb=d[po+2];
+    const ar=ref[p*3],ag=ref[p*3+1],ab=ref[p*3+2];
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      if(!dx&&!dy)continue;
+      const nx=x+dx,ny=y+dy;
+      if(nx<0||ny<0||nx>=w||ny>=h)continue;
+      const ni=ny*w+nx;
+      if(out[ni])continue;
+      if(constraint&&!constraint[ni])continue;
+      const o=ni*4;
+      const dr=d[o]-pr,dg=d[o+1]-pg,db=d[o+2]-pb;
+      const dist=Math.sqrt(dr*dr+dg*dg+db*db);
+      if(dist>grow)continue;
+      const cr=d[o]-ar,cg=d[o+1]-ag,cb=d[o+2]-ab;
+      if(cr*cr+cg*cg+cb*cb>anchor*anchor)continue;
+      if(e[ni]>edgeT&&dist>soft)continue;
+      out[ni]=1;q[qt++]=ni;
+      ref[ni*3]=ar;ref[ni*3+1]=ag;ref[ni*3+2]=ab;
+    }
+  }
+  return out;}
+/* ── sélection complète : lasso/clic → objet précis ── */
+function selToMask(sel,tol){
+  const w=bw,h=bh,N=w*h;
+  if(!w||!sel)return null;
+  let d;
+  try{d=ctx.getImageData(0,0,w,h).data;}catch(err){alert("⚠️ Image externe : télécharge-la (💾) puis importe-la (📁).");return null;}
+  const e=buildEdges(d,w,h);
+  let constraint=null;
+  const seedMask=new Uint8Array(N);
+  if(sel.poly&&sel.poly.length>=4){
+    constraint=rasterPoly(sel.poly,w,h);
+    if(countMask(constraint)<40)return null;
+    const dt=chamferDist(constraint,w,h);
+    let mx=0;for(let i=0;i<N;i++)if(dt[i]>mx)mx=dt[i];
+    const th=Math.max(1.5,mx*0.45);
+    let any=0;
+    for(let i=0;i<N;i++)if(constraint[i]&&dt[i]>=th){seedMask[i]=1;any++;}
+    if(!any){
+      let cx=0,cy=0,c=0;
+      for(let i=0;i<N;i++)if(constraint[i]){cx+=i%w;cy+=(i/w)|0;c++;}
+      if(!c)return null;cx/=c;cy/=c;
+      let best=-1,bd=1e18;
+      for(let i=0;i<N;i++)if(constraint[i]){const dx=i%w-cx,dy=((i/w)|0)-cy,dd=dx*dx+dy*dy;if(dd<bd){bd=dd;best=i;}}
+      if(best>=0)seedMask[best]=1;
+    }
+  }else if(sel.sx!=null){
+    const x=Math.max(0,Math.min(w-1,Math.round(sel.sx))),y=Math.max(0,Math.min(h-1,Math.round(sel.sy)));
+    seedMask[y*w+x]=1;
+  }else return null;
+  const step=Math.max(1,(N/20000)|0);
+  const ev=[];
+  for(let i=0;i<N;i+=step){if(constraint&&!constraint[i])continue;if(e[i]>0)ev.push(e[i]);}
+  ev.sort((p,r)=>p-r);
+  const edgeT=ev.length?Math.max(9,Math.min(130,ev[(ev.length*0.6)|0])):45;
+  const g=growRegion(seedMask,constraint,tol,edgeT,d,w,h,e);
+  if(!g||!countMask(g))return null;
+  return dilateN(fillHoles(g,w,h),w,h,2);}
+function drawSel(m){clearMask();if(!m)return;const id=mctx.createImageData(bw,bh),dd=id.data;for(let i=0;i<m.length;i++)if(m[i]){const o=i*4;dd[o]=255;dd[o+1]=48;dd[o+2]=58;dd[o+3]=190;}mctx.putImageData(id,0,0);}
+/* ── flou boîte séparable (détails haute fréquence) ── */
+function boxBlur3(src,w,h,r){
+  const n=2*r+1,tmp=new Float32Array(src.length),out=new Float32Array(src.length);
+  for(let y=0;y<h;y++)for(let c=0;c<3;c++){
+    let s=0;
+    for(let x=-r;x<=r;x++)s+=src[(y*w+Math.min(w-1,Math.max(0,x)))*3+c];
+    for(let x=0;x<w;x++){tmp[(y*w+x)*3+c]=s/n;s+=src[(y*w+Math.min(w-1,x+r+1))*3+c];s-=src[(y*w+Math.max(0,x-r))*3+c];}}
+  for(let x=0;x<w;x++)for(let c=0;c<3;c++){
+    let s=0;
+    for(let y=-r;y<=r;y++)s+=tmp[(Math.min(h-1,Math.max(0,y))*w+x)*3+c];
+    for(let y=0;y<h;y++){out[(y*w+x)*3+c]=s/n;s+=tmp[(Math.min(h-1,y+r+1)*w+x)*3+c];s-=tmp[(Math.max(0,y-r)*w+x)*3+c];}}
+  return out;}
+/* ── remplissage multi-échelle : pyramide + Gauss-Seidel (reconstruit le fond) ── */
+function maskBBox(mask,w,h){let x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(mask[y*w+x]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}return x1<0?null:[x0,y0,x1,y1];}
+/* diffusion de Gauss-Seidel : chaque pixel inconnu prend la moyenne de ses 8 voisins */
+function smoothMasked(a,mask,w,h,bb,it){
+  if(!bb)bb=maskBBox(mask,w,h);
+  if(!bb)return;
+  const x0=Math.max(1,bb[0]),y0=Math.max(1,bb[1]),x1=Math.min(w-2,bb[2]),y1=Math.min(h-2,bb[3]);
+  for(let k=0;k<it;k++)for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const i=y*w+x;
+    if(!mask[i])continue;
+    let r=0,g=0,b=0,c=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const n=(y+dy)*w+x+dx;r+=a[n*3];g+=a[n*3+1];b+=a[n*3+2];c++;}
+    if(!c)continue;
+    a[i*3]=r/c;a[i*3+1]=g/c;a[i*3+2]=b/c;}
+}
+function fillSmart(a,mask,w,h){
+  const lv=[{c:a,m:mask,w:w,h:h}];
+  let cw=w,ch=h,cc=a,cm=mask;
+  while(cw>4&&ch>4){
+    const nw=cw>>1,nh=ch>>1;
+    const nc=new Float32Array(nw*nh*3),nm=new Uint8Array(nw*nh);
+    let known=0;
+    for(let y=0;y<nh;y++)for(let x=0;x<nw;x++){
+      let s=0,r=0,g=0,b=0;
+      for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++){
+        const sx=Math.min(cw-1,x*2+dx),sy=Math.min(ch-1,y*2+dy),si=sy*cw+sx;
+        if(!cm[si]){s++;r+=cc[si*3];g+=cc[si*3+1];b+=cc[si*3+2];}}
+      const oi=y*nw+x;
+      if(s){nc[oi*3]=r/s;nc[oi*3+1]=g/s;nc[oi*3+2]=b/s;nm[oi]=0;known++;}
+      else nm[oi]=1;}
+    lv.push({c:nc,m:nm,w:nw,h:nh});
+    cw=nw;ch=nh;cc=nc;cm=nm;
+    if(!known)break;}
+  const top=lv[lv.length-1];
+  let tr=0,tg=0,tb=0,tc=0;
+  for(let i=0;i<top.w*top.h;i++)if(!top.m[i]){tr+=top.c[i*3];tg+=top.c[i*3+1];tb+=top.c[i*3+2];tc++;}
+  if(tc){tr/=tc;tg/=tc;tb/=tc;}else{tr=tg=tb=128;}
+  for(let i=0;i<top.w*top.h;i++)if(top.m[i]){top.c[i*3]=tr;top.c[i*3+1]=tg;top.c[i*3+2]=tb;top.m[i]=0;}
+  for(let l=lv.length-1;l>0;l--){
+    const f=lv[l-1],co=lv[l];
+    for(let y=0;y<f.h;y++)for(let x=0;x<f.w;x++){
+      const i=y*f.w+x;
+      if(!f.m[i])continue;
+      const fx=Math.min(co.w-1,x*0.5),fy=Math.min(co.h-1,y*0.5);
+      const xa=fx|0,ya=fy|0,xb=Math.min(co.w-1,xa+1),yb=Math.min(co.h-1,ya+1),tx=fx-xa,ty=fy-ya;
+      const j00=ya*co.w+xa,j01=ya*co.w+xb,j10=yb*co.w+xa,j11=yb*co.w+xb;
+      const w00=(1-tx)*(1-ty),w01=tx*(1-ty),w10=(1-tx)*ty,w11=tx*ty;
+      f.c[i*3]=co.c[j00*3]*w00+co.c[j01*3]*w01+co.c[j10*3]*w10+co.c[j11*3]*w11;
+      f.c[i*3+1]=co.c[j00*3+1]*w00+co.c[j01*3+1]*w01+co.c[j10*3+1]*w10+co.c[j11*3+1]*w11;
+      f.c[i*3+2]=co.c[j00*3+2]*w00+co.c[j01*3+2]*w01+co.c[j10*3+2]*w10+co.c[j11*3+2]*w11;}
+    smoothMasked(f.c,f.m,f.w,f.h,null,l===1?30:12);}
+}
+/* ── synthèse de texture (PatchMatch) : on recolle le vrai fond autour ── */
+function patchFill(est,mask,w,h,bb){
+  const N=w*h,nm=countMask(mask);
+  if(!nm||nm>N*0.9)return;
+  let sc=0;for(let i=0;i<N;i++)if(!mask[i])sc++;
+  if(sc<400)return;
+  const rad=nm>80000?1:2,iters=nm>250000?2:3;
+  const X0=Math.max(rad,bb[0]),Y0=Math.max(rad,bb[1]),X1=Math.min(w-1-rad,bb[2]),Y1=Math.min(h-1-rad,bb[3]);
+  if(X1<=X0||Y1<=Y0)return;
+  const ax=new Int32Array(N),ay=new Int32Array(N),cur=new Float32Array(N);
+  for(let i=0;i<N;i++)cur[i]=-1;
+  const rw=X1-X0+1,rh=Y1-Y0+1;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=y*w+x;
+    if(!mask[i]){ax[i]=0;ay[i]=0;continue;}
+    let sx=0,sy=0,t=0;
+    do{sx=X0+((Math.random()*rw)|0);sy=Y0+((Math.random()*rh)|0);t++;}while(t<50&&mask[sy*w+sx]);
+    ax[i]=sx-x;ay[i]=sy-y;}
+  const cost=(x,y,dx,dy)=>{
+    const sx=x+dx,sy=y+dy;
+    if(sx-rad<0||sy-rad<0||sx+rad>=w||sy+rad>=h)return 1e12;
+    let c=0;
+    for(let j=-rad;j<=rad;j++){
+      const sr=(sy+j)*w,tr=(y+j)*w;
+      for(let k=-rad;k<=rad;k++){
+        const q=sr+sx+k;
+        if(mask[q])return 1e12;
+        const p=tr+x+k;
+        const dr=est[p*3]-est[q*3],dg=est[p*3+1]-est[q*3+1],db=est[p*3+2]-est[q*3+2];
+        c+=dr*dr+dg*dg+db*db;}}
+    return c;};
+  const FWD=[[-1,0],[0,-1],[-1,-1],[1,-1]],BWD=[[1,0],[0,1],[1,1],[-1,1]];
+  for(let it=0;it<iters;it++){
+    for(let pass=0;pass<2;pass++){
+      const ys=pass?Y1:Y0,ye=pass?Y0:Y1,yst=pass?-1:1;
+      const xs=pass?X1:X0,xe=pass?X0:X1,xst=pass?-1:1;
+      const D=pass?BWD:FWD;
+      for(let y=ys;y!==ye+yst;y+=yst)for(let x=xs;x!==xe+xst;x+=xst){
+        const i=y*w+x;
+        if(!mask[i])continue;
+        if(cur[i]<0)cur[i]=cost(x,y,ax[i],ay[i]);
+        for(let c=0;c<4;c++){
+          const nx=x+D[c][0],ny=y+D[c][1];
+          if(nx<0||ny<0||nx>=w||ny>=h)continue;
+          const ni=ny*w+nx,cc=cost(x,y,ax[ni],ay[ni]);
+          if(cc<cur[i]){cur[i]=cc;ax[i]=ax[ni];ay[i]=ay[ni];}}}
+    }
+    let r=Math.max(6,Math.max(X1-X0,Y1-Y0)>>1);
+    while(r>=1){
+      for(let y=Y0;y<=Y1;y++)for(let x=X0;x<=X1;x++){
+        const i=y*w+x;
+        if(!mask[i])continue;
+        if(cur[i]<0)cur[i]=cost(x,y,ax[i],ay[i]);
+        const dx=ax[i]+(((Math.random()*2*r)|0)-r),dy=ay[i]+(((Math.random()*2*r)|0)-r);
+        const c=cost(x,y,dx,dy);
+        if(c<cur[i]){cur[i]=c;ax[i]=dx;ay[i]=dy;}}
+      r>>=1;}
+    for(let y=Y0;y<=Y1;y++)for(let x=X0;x<=X1;x++){
+      const i=y*w+x;
+      if(!mask[i])continue;
+      const sx=x+ax[i],sy=y+ay[i];
+      if(sx<0||sy<0||sx>=w||sy>=h||mask[sy*w+sx])continue;
+      const q=sy*w+sx;
+      est[i*3]=est[q*3];est[i*3+1]=est[q*3+1];est[i*3+2]=est[q*3+2];}
+    for(let i=0;i<N;i++)cur[i]=-1;
+  }
+}
+/* ── raccord invisible sur les bords du trou ── */
+function seamBlend(d,w,h,mask){
+  const ed=[];
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;
+    if(!mask[i])continue;
+    if(!mask[i-1]||!mask[i+1]||!mask[i-w]||!mask[i+w]||!mask[i-w-1]||!mask[i-w+1]||!mask[i+w-1]||!mask[i+w+1])ed.push(i);}
+  if(!ed.length)return;
+  const cp=new Float32Array(ed.length*3);
+  for(let k=0;k<ed.length;k++){const o=ed[k]*4;cp[k*3]=d[o];cp[k*3+1]=d[o+1];cp[k*3+2]=d[o+2];}
+  for(let p=0;p<2;p++)for(let k=0;k<ed.length;k++){
+    const i=ed[k],x=i%w,y=(i/w)|0;
+    let r=0,g=0,b=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const o=((y+dy)*w+x+dx)*4;r+=d[o];g+=d[o+1];b+=d[o+2];}
+    const o=i*4;
+    d[o]=cp[k*3]*0.4+(r/9)*0.6;
+    d[o+1]=cp[k*3+1]*0.4+(g/9)*0.6;
+    d[o+2]=cp[k*3+2]*0.4+(b/9)*0.6;}
+}
+/* ── pipeline complet : structure (pyramide) + texture (PatchMatch) ── */
+function inpaintReplace(img,mask){
+  const w=img.width,h=img.height,N=w*h,d=img.data;
+  let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(mask[y*w+x]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+  if(x1<0)return false;
+  const P=16,bb=[Math.max(0,x0-P),Math.max(0,y0-P),Math.min(w-1,x1+P),Math.min(h-1,y1+P)];
+  const base=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const o=i*4;base[i*3]=d[o];base[i*3+1]=d[o+1];base[i*3+2]=d[o+2];}
+  fillSmart(base,mask,w,h);
+  const est=base.slice();
+  patchFill(est,mask,w,h,bb);
+  const det=boxBlur3(est,w,h,4);
+  for(let i=0;i<N;i++){
+    if(!mask[i])continue;
+    const o=i*4;
+    d[o]=base[i*3]+(est[i*3]-det[i*3])*0.85;
+    d[o+1]=base[i*3+1]+(est[i*3+1]-det[i*3+1])*0.85;
+    d[o+2]=base[i*3+2]+(est[i*3+2]-det[i*3+2])*0.85;
+    d[o+3]=255;}
+  seamBlend(d,w,h,mask);
+  return true;}
+/* (ancien remplissage par moyenne remplacé par push-pull + PatchMatch) */
+function needBase(){if(!bw){alert("🎨 Génère ou importe d'abord une image !");return false;}return true;}
+$("eErase").onclick=()=>{if(!needBase())return;let mk,img;try{mk=studioMask();if(!mk)return alert("🪄 Entoure d'abord l'objet (mode Auto) ou peins la zone (mode Pinceau) !");img=ctx.getImageData(0,0,bw,bh);}catch(e){return alert("⚠️ Image externe : télécharge-la (💾) puis importe-la (📁).");}pushUndo();$("eHint").textContent="⏳ Gommage : reconstruction du fond + copie de texture…";setTimeout(()=>{if(inpaintReplace(img,mk)){ctx.putImageData(img,0,0);clearMask();curSel=null;curMask=null;$("eHint").textContent="✅ Objet effacé ET remplacé par le fond ! 💾 télécharger · ↩ annuler · 🖼 Tampon clone pour mettre autre chose à la place.";}else{undo.pop();$("eHint").textContent="❌ Sélection vide. Entoure un objet avant de gommer.";}},40);};
+function thruMask(mode){if(!needBase())return;let mk;try{mk=studioMask();if(!mk)return alert("🖌 Peins d'abord la zone à traiter !");}catch(e){return alert("⚠️ Image externe : télécharge-la (💾) puis importe-la (📁).");}pushUndo();const fx=document.createElement("canvas");fx.width=bw;fx.height=bh;const fc=fx.getContext("2d");if(mode==="blur"){fc.filter="blur(12px)";fc.drawImage(cv,0,0);}else{const s=18,tw=Math.max(1,(bw/s)|0),th=Math.max(1,(bh/s)|0),sm=document.createElement("canvas");sm.width=tw;sm.height=th;sm.getContext("2d").drawImage(cv,0,0,tw,th);fc.imageSmoothingEnabled=false;fc.drawImage(sm,0,0,tw,th,0,0,bw,bh);}fc.filter="none";fc.globalCompositeOperation="destination-in";fc.drawImage(cm,0,0);ctx.drawImage(fx,0,0);clearMask();}
+$("eBlur").onclick=()=>thruMask("blur");
+$("ePix").onclick=()=>thruMask("pix");
+$("eUndo").onclick=()=>{const p=undo.pop();if(p)ctx.putImageData(p,0,0);};
+$("eClear").onclick=()=>{clearMask();curSel=null;curMask=null;$("eHint").textContent="🧹 Sélection vidée. Entoure un nouvel objet 🪄.";};
+$("eDl").onclick=()=>{if(!needBase())return;const a=document.createElement("a");a.href=cv.toDataURL("image/png");a.download="arteon-retouche.png";a.click();};
+$("eFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{setBase(im);openStudio("edit");URL.revokeObjectURL(im.src);};im.src=URL.createObjectURL(f);e.target.value="";};
+let tool="auto",lassoPts=[],curSel=null,curMask=null,stampHas=false,stampSX=0,stampSY=0,stampOX=0,stampOY=0,stampBase=null,stampLast=null,brushLast=null;
+document.querySelectorAll(".tmode").forEach(b=>b.onclick=()=>{tool=b.dataset.m;document.querySelectorAll(".tmode").forEach(x=>x.classList.toggle("on",x===b));stampHas=false;stampBase=null;$("eHint").textContent=tool==="stamp"?"🖨 Clique un endroit propre pour mémoriser la source, puis peins sur ce à remplacer.":tool==="brush"?"🖌 Peins directement en rouge la zone à gommer.":"🪄 Entoure grossièrement l'objet : je le sélectionne seul sur les contours. Sensibilité pour ajuster, puis « Gommer & remplacer ».";});
+function runAuto(){if(!curSel)return;const t=+$("eTol").value;$("eHint").textContent="⏳ Analyse des contours…";setTimeout(()=>{const m=selToMask(curSel,t);if(!m){curMask=null;clearMask();$("eHint").textContent="❌ Objet introuvable ici. Entoure mieux, ou augmente la sensibilité.";return;}curMask=m;drawSel(m);$("eHint").textContent="✅ Objet sélectionné ("+countMask(m)+" px) ! Sensibilité pour ajuster, puis « Gommer & remplacer ».";},30);}
+let tolTimer=null;
+$("eTol").addEventListener("input",()=>{if(tool!=="auto"||!curSel)return;clearTimeout(tolTimer);tolTimer=setTimeout(runAuto,140);});
+function evPos(ev){const r=cm.getBoundingClientRect();return[(ev.clientX-r.left)*bw/r.width,(ev.clientY-r.top)*bh/r.height];}
+function dotMask(x,y){const s=+$("eSize").value;mctx.fillStyle="rgba(255,60,70,.85)";mctx.beginPath();mctx.arc(x,y,Math.max(2,s/2),0,7);mctx.fill();}
+function strokeMask(x0,y0,x1,y1){const s=+$("eSize").value;mctx.strokeStyle="rgba(255,60,70,.85)";mctx.lineWidth=s;mctx.lineCap="round";mctx.lineJoin="round";mctx.beginPath();mctx.moveTo(x0,y0);mctx.lineTo(x1,y1);mctx.stroke();}
+function polyArea(p){let a=0;for(let i=0;i<p.length;i++){const q=p[(i+1)%p.length];a+=p[i][0]*q[1]-q[0]*p[i][1];}return Math.abs(a/2);}
+/* (lassoFill remplacé par l'auto-sélection selToMask) */
+function stampDab(x,y){const s=+$("eSize").value,r=s/2;ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.clip();ctx.drawImage(stampBase,x-stampOX-r,y-stampOY-r,s,s,x-r,y-r,s,s);ctx.restore();}
+cm.addEventListener("pointerdown",ev=>{if(!needBase())return;const P=evPos(ev),x=P[0],y=P[1];painting=true;
+if(tool==="stamp"){if(!stampHas){stampSX=x;stampSY=y;stampHas=true;$("eHint").textContent="✅ Source mémorisée ! Peins maintenant la zone à remplacer.";}else{pushUndo();stampBase=document.createElement("canvas");stampBase.width=bw;stampBase.height=bh;stampBase.getContext("2d").drawImage(cv,0,0);stampOX=x-stampSX;stampOY=y-stampSY;stampDab(x,y);stampLast=[x,y];}}
+else if(tool==="auto"){lassoPts=[[x,y]];mctx.strokeStyle="rgba(255,60,70,.9)";mctx.lineWidth=4;mctx.lineCap="round";mctx.lineJoin="round";mctx.beginPath();mctx.moveTo(x,y);}
+else{dotMask(x,y);brushLast=[x,y];}
+try{cm.setPointerCapture(ev.pointerId);}catch(e){}});
+cm.addEventListener("pointermove",ev=>{if(!painting)return;const P=evPos(ev),x=P[0],y=P[1];
+if(tool==="stamp"&&stampHas&&stampBase){if(!stampLast)stampLast=[x,y];const dx=x-stampLast[0],dy=y-stampLast[1];if(Math.hypot(dx,dy)>=Math.max(2,+$("eSize").value/4)){stampDab(x,y);stampLast=[x,y];}}
+else if(tool==="auto"&&lassoPts.length){const l=lassoPts[lassoPts.length-1];if(Math.hypot(x-l[0],y-l[1])>2){lassoPts.push([x,y]);mctx.lineTo(x,y);mctx.stroke();}}
+else if(tool==="brush"){if(!brushLast)brushLast=[x,y];strokeMask(brushLast[0],brushLast[1],x,y);brushLast=[x,y];}});
+cm.addEventListener("pointerup",()=>{painting=false;
+if(tool==="auto"&&lassoPts.length){
+  const pts=lassoPts;lassoPts=[];
+  let sx=0,sy=0;for(let k=0;k<pts.length;k++){sx+=pts[k][0];sy+=pts[k][1];}
+  sx/=pts.length;sy/=pts.length;
+  curSel=(pts.length>=5&&polyArea(pts)>=500)?{poly:pts}:{sx:sx,sy:sy};
+  runAuto();}
+stampLast=null;brushLast=null;});
+
+/* ══════════ VRAI MODÈLE IA LOCAL ══════════
+   Arteon reste une interface HTML, mais le "cerveau" tourne sur le PC
+   via le modèle local (http://127.0.0.1:11434). Sans elle, secours moteur + Wikipédia.
+*/
+const AI_URL = 'http://127.0.0.1:11434/api/chat';
+const AI_SYSTEM = `Tu es ARTEON, un assistant IA francophone qui tourne sur le PC de l'utilisateur.
+REGLES STRICTES :
+- Reponds en francais (sauf demande explicite d'une autre langue), de facon naturelle et concise.
+- Tu t'appelles ARTEON. Ne dis jamais que tu es un autre assistant, et ne reponds jamais "je suis ..." a une question "qui est ... ?" qui ne te concerne pas.
+- Faits a jour (2026) : president de la France = Emmanuel Macron ; president des USA = Donald Trump (depuis janvier 2025) ; capitale du Japon = Tokyo.
+- Question factuelle simple (capitale, president, calcul) -> reponds directement en une phrase.
+- Tu peux expliquer des cours, programmer, raisonner, resumer, ecrire et discuter.
+- Si tu ignores quelque chose, dis-le franchement au lieu d'inventer.`;
+function aiMessages(userText){
+  const hist=[];
+  try{
+    const saved=JSON.parse(localStorage.getItem(PFX+'chat')||'[]').slice(-8);
+    for(const m of saved){
+      if(!m.h||m.h.indexOf('<img')>=0)continue;
+      const txt=(m.h||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+      if(!txt||txt.length>900)continue;
+      hist.push({role:m.me?'user':'assistant',content:txt.slice(0,800)});
+    }
+  }catch(_){}
+  hist.push({role:'user',content:userText});
+  return [{role:'system',content:AI_SYSTEM},...hist];
+}
+async function askLocalAI(userText){
+  if(!aiON) return null;
+  try{
+    const r=await fetch(AI_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:aiModel,messages:aiMessages(userText),stream:false,options:{temperature:0.35}})
+    });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    const answer=j&&j.message&&j.message.content?j.message.content.trim():'';
+    if(!answer) throw new Error('Réponse vide');
+    return answer;
+  }catch(e){return null;}
+}
+function aiHtml(text){
+  let x=esc(text);
+  x=x.replace(/```([\s\S]*?)```/g,(m,c)=>'<pre style="white-space:pre-wrap;background:#08080b;border:1px solid #25252e;border-radius:10px;padding:10px;overflow:auto"><code>'+c.trim()+'</code></pre>');
+  x=x.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+  x=x.replace(/`([^`]+)`/g,'<code>$1</code>');
+  x=x.replace(/\n/g,'<br>');
+  return x;
+}
+async function localBrainReply(t){return await askLocalAI(t);}
+function apiMessages(sys,t){
+  const h=[{role:'system',content:sys}];
+  try{
+    const saved=JSON.parse(localStorage.getItem(PFX+'chat')||'[]').slice(-6);
+    for(const m of saved){
+      if(!m.h||m.h.indexOf('<img')>=0)continue;
+      const txt=(m.h||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+      if(!txt||txt.length>600)continue;
+      h.push({role:m.me?'user':'assistant',content:txt.slice(0,600)});
+    }
+  }catch(_){}
+  h.push({role:'user',content:t});
+  return h;
+}
+async function apiChat(url,key,model,sys,t){
+  try{
+    const c=new AbortController();const to=setTimeout(()=>c.abort(),25000);
+    const r=await fetch(url,{method:'POST',signal:c.signal,headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,messages:apiMessages(sys,t),stream:false,temperature:0.35})});
+    clearTimeout(to);
+    if(!r.ok)return null;
+    const j=await r.json();
+    const a=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content?j.choices[0].message.content.trim():'';
+    return a||null;
+  }catch(e){return null;}
+}
+async function askFreeAI(t){
+  try{
+    const c=new AbortController();const to=setTimeout(()=>c.abort(),20000);
+    const p='Réponds en français, brièvement et naturellement. Utilisateur : '+t.slice(0,500);
+    const r=await fetch('https://text.pollinations.ai/'+encodeURIComponent(p)+'?model=openai',{signal:c.signal});
+    clearTimeout(to);
+    if(!r.ok)return null;
+    const txt=(await r.text()).trim();
+    return (txt&&txt.length>1)?txt.slice(0,3000):null;
+  }catch(e){return null;}
+}
+function tokState(){let o={used:0,resetAt:0};try{const s=JSON.parse(localStorage.getItem(PFX+'tok3')||'null');if(s)o=s;}catch(e){}const now=Date.now();if(!o.resetAt||now>o.resetAt){o={used:0,resetAt:now+3600000};try{localStorage.setItem(PFX+'tok3',JSON.stringify(o));}catch(e){}}return o;}
+function tokAdd(q,a){const o=tokState();o.used+=Math.max(1,Math.ceil(((q||'').length+(a||'').length)/4));try{localStorage.setItem(PFX+'tok3',JSON.stringify(o));}catch(e){}updTokBtn();}
+function tokLeft(){const o=tokState();return Math.max(0,100-o.used);}
+function updTokBtn(){try{const b=document.querySelector('.md[data-m="3.3"]');if(b)b.innerHTML='Pro + Coding <b>3.3 ('+tokLeft()+' token)</b>';}catch(e){}}
+async function askMistral(t){let k='';try{k=localStorage.getItem('arteon_mist')||'';}catch(e){}if(!k)return null;return await apiChat('https://api.mistral.ai/v1/chat/completions',k,'mistral-small-latest',AI_SYSTEM,t);}
+async function askGPT(t){let k='';try{k=localStorage.getItem('arteon_gpt')||'';}catch(e){}if(!k)return null;const sys='Tu es ARTEON 3.3, un expert en programmation et en culture générale. Tu réponds en français (sauf demande contraire), de façon claire et utile. Pour le code : donne du code qui marche, commenté en français, sans en faire des tonnes. Tu seches ? Dis-le franchement.';return await apiChat('https://api.openai.com/v1/chat/completions',k,'gpt-4o-mini',sys,t);}
+
+/* COMPTES / THEME / RESEAU */
+function getUsers(){try{return JSON.parse(localStorage.getItem('arteon_users')||'[]');}catch(e){return[];}}
+function saveUsers(u){try{localStorage.setItem('arteon_users',JSON.stringify(u));}catch(e){}}
+function curUser(){const id=curUid();if(id==='guest')return null;const u=getUsers();for(let i=0;i<u.length;i++)if(u[i].id===id)return u[i];return null;}
+function renderUsers(){
+  const box=$('users');if(!box)return;box.innerHTML='';
+  const u=getUsers(),cur=curUid();
+  const mk=(id,name,sub)=>{const b=document.createElement('button');b.className='opt'+(id===cur?' on':'');b.textContent='\uD83D\uDC64 '+name+'  \u2022  '+sub;b.onclick=()=>switchUser(id);box.appendChild(b);};
+  mk('guest','Invit\u00E9','m\u00E9moire commune');
+  for(let i=0;i<u.length;i++)mk(u[i].id,u[i].name,'compte priv\u00E9');
+  const me=curUser();
+  $('whoami').innerHTML=me?('Connect\u00E9 : <b>'+esc(me.name)+'</b> \u2014 m\u00E9moire, entra\u00EEnement et stats rien qu\u2019\u00E0 toi.'):'Mode <b>Invit\u00E9</b> \u2014 cr\u00E9e ton compte pour une m\u00E9moire priv\u00E9e.';
+  if(me){const del=document.createElement('button');del.className='opt';del.textContent='\uD83D\uDEAA Supprimer ce compte';del.onclick=delUser;box.appendChild(del);}
+}
+function switchUser(id){try{localStorage.setItem('arteon_cur',id);}catch(e){}location.reload();}
+function newUser(){const name=(prompt('Nom du compte :')||'').trim().slice(0,20);if(!name)return;const u=getUsers();const id='u'+Date.now().toString(36);u.push({id:id,name:name});saveUsers(u);switchUser(id);}
+function delUser(){const me=curUser();if(!me)return;if(!confirm('Supprimer le compte "'+me.name+'" et sa m\u00E9moire ?'))return;const ks=['n','l','w','mem','name','ctx','chat','hq','ai','model'];for(let i=0;i<ks.length;i++){try{localStorage.removeItem('arteon_u_'+me.id+'_'+ks[i]);}catch(e){}}saveUsers(getUsers().filter(x=>x.id!==me.id));switchUser('guest');}
+let lightMode=false;try{lightMode=localStorage.getItem('arteon_theme')==='light';}catch(e){}
+function applyTheme(){document.body.classList.toggle('light',lightMode);const b=$('tTheme');if(b)b.innerHTML='\u2600\uFE0F Th\u00E8me clair <b>'+(lightMode?'ON':'OFF')+'</b>';}
+function updNet(){const el=$('netstate');if(el)el.textContent='Arteon '+engineMode;}
+$('bUserNew').onclick=()=>{closeMenu();newUser();};
+$('tTheme').onclick=()=>{lightMode=!lightMode;try{localStorage.setItem('arteon_theme',lightMode?'light':'dark');}catch(e){}applyTheme();};
+applyTheme();updNet();renderUsers();
+/* ══════════ ENVOI ══════════ */
+async function send(){
+const t=inp.value.trim();if(!t)return;inp.value='';closeMenu();
+nQ++;localStorage.setItem(PFX+'n',nQ);stats();pushHist(t);
+addMsg(esc(t),true);saveChat([{h:esc(t),me:true}]);
+const wait=addMsg('<span class="typ"><i></i><i></i><i></i></span>',false,{c:'l',t:'ARTEON'});
+await new Promise(r=>setTimeout(r,120));
+const ip=imgPromptOf(t);
+if(ip){await genChatImage(wait,ip);saveChat([{h:wait.innerHTML,me:false}]);speak(wait.textContent);window.scrollTo(0,document.body.scrollHeight);return;}
+/* 1) moteur local exact : faits, calculs, salutations -> reponse immediate et juste */
+let gm=t.match(/^google\s+(.+)/i);
+if(!gm){const m3=t.match(/^cherche(?:r)?\s+(.+)/i);if(m3&&m3[1].trim()&&!/^(que |qu |comment |pourquoi |combien |qui |quoi |ou |quel)/i.test(m3[1].trim()))gm=[null,m3[1].trim()];}
+if(gm&&String(gm[1]).trim()){
+  const gq=String(gm[1]).trim().replace(/[?.!]+$/,'');
+  openNav(ddgUrl(gq));
+  wait.innerHTML='<div class="who">ARTEON <b>✦</b></div><span class="badge l">GOOGLE</span><br>Je cherche <b>'+esc(gq)+'</b> sur Chrome et ici :<br><div class="mini"><a href="'+gUrl(gq)+'" target="_blank">Ouvrir dans Chrome</a><button onclick="navigator.clipboard.writeText(this.closest(\'.msg\').innerText)">Copier</button></div>';
+  nW++;localStorage.setItem(PFX+'w',nW);stats();
+  saveChat([{h:wait.innerHTML,me:false}]);speak(wait.textContent);window.scrollTo(0,document.body.scrollHeight);return;
+}
+const L=local(t);
+if(L){
+  wait.innerHTML='<div class="who">ARTEON <b>\u2726</b></div><span class="badge l">\u26A1 LOCAL</span><br>'+L+miniBtns(t,wUrl(t));nL++;localStorage.setItem(PFX+'l',nL);stats();
+}else{
+  /* MODES : 3.3 -> 3.2 -> 1.4 -> wiki (1.1 = local + wiki) */
+  let effMode=engineMode,tokLock=null;
+  if(engineMode==='3.3'){const ts=tokState();if(ts.used>=100){effMode='3.2';tokLock=ts;}}
+  let ans=null;const src='ARTEON '+effMode;
+  if(effMode==='3.3'){ans=await askGPT(t);}
+  if(!ans&&effMode!=='1.1'&&effMode!=='1.4'){ans=await askMistral(t);}
+  if(!ans&&effMode!=='1.1'&&effMode!=='1.4'){ans=await localBrainReply(t);}
+  if(!ans&&effMode!=='1.1'){ans=await askFreeAI(t);}
+  if(ans){
+    if(engineMode==='3.3'&&!tokLock)tokAdd(t,ans);
+    const lockMsg=tokLock?('Batterie : 100 tokens utilisés, recharge dans '+Math.max(1,Math.ceil((tokLock.resetAt-Date.now())/60000))+' min. Réponse en mode 3.2 :<br><br>'):'';
+    wait.innerHTML='<div class="who">ARTEON <b>\u2726</b></div><span class="badge l">'+esc(src)+'</span><br>'+lockMsg+aiHtml(ans)+'<div class="mini"><a href="'+gUrl(t)+'" target="_blank">Google</a><button onclick="navigator.clipboard.writeText(this.closest(\'.msg\').innerText)">Copier</button></div>';
+    nL++;localStorage.setItem(PFX+'l',nL);stats();
+  }
+  else if(webON){wait.innerHTML='<span class="typ"><i></i><i></i><i></i></span> \uD83C\uDF10 Rechercheâ€¦';const s=sujet(t)||t;const W=await wiki(s);
+  if(W){const img=W.thumbnail?'<br><img class="wimg" src="'+W.thumbnail.source+'">':'';const url=W.content_urls.desktop.page;
+  wait.innerHTML='<div class="who">ARTEON <b>\u2726</b></div><span class="badge w">\uD83C\uDF10 WIKIP\u00C9DIA \u2022 '+esc(W.title)+'</span><br>'+esc(W.extract).slice(0,650)+'â€¦'+img+'<br><div class="mini"><a href="'+url+'" target="_blank">\uD83D\uDCD6 Article</a><button onclick="openNav(\''+url+'\')">Lire ici</button><a href="'+gUrl(s)+'" target="_blank">Google</a><button onclick="navigator.clipboard.writeText(this.closest(\'.msg\').innerText)">\uD83D\uDCCB Copier</button></div>';nW++;localStorage.setItem(PFX+'w',nW);stats();}
+  else{wait.innerHTML='<div class="who">ARTEON <b>\u2726</b></div><span class="badge w">\u2753</span><br>Je n\u2019ai pas r\u00E9ussi \u00E0 joindre mon mod\u00E8le local et je ne trouve pas non plus cette demande sur Wikip\u00E9dia.<br>Essaie Google en source :<br><div class="mini"><a href="'+gUrl(s)+'" target="_blank">Google</a><button onclick="openNav(\''+gUrl(s).replace(/'/g,'')+'\')">Google ici</button></div>';}
+  }
+  else wait.innerHTML='<div class="who">ARTEON <b>\u2726</b></div><span class="badge l">\u26A1 LOCAL</span><br>Le mod\u00E8le IA local ne r\u00E9pond pas. IA Arteon local : garde vos donn\u00E9es et ne partage pas. V\u00E9rifie ta connexion ou change de mode dans le menu.';
+}
+saveChat([{h:wait.innerHTML,me:false}]);speak(wait.textContent);window.scrollTo(0,document.body.scrollHeight);
+}
+$('send').onclick=send;inp.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+/* MODES ARTEON : 1.1 basique / 1.4 ultra / 3.2 pro Mistral / 3.3 pro+coding ChatGPT */
+/* engineMode est déclaré en haut du script */
+function setMode(m){engineMode=m;try{localStorage.setItem('arteon_mode',m);}catch(e){}aiON=(m!=='1.1');document.querySelectorAll('.md').forEach(b=>b.classList.toggle('on',b.dataset.m===m));updNet();}
+document.querySelectorAll('.md').forEach(b=>b.onclick=()=>{setMode(b.dataset.m);});
+try{$('mistKey').value=localStorage.getItem('arteon_mist')||'';}catch(e){}
+try{$('gptKey').value=localStorage.getItem('arteon_gpt')||'';}catch(e){}
+$('mistKey').onchange=e=>{try{localStorage.setItem('arteon_mist',e.target.value.trim());}catch(_){}};
+$('gptKey').onchange=e=>{try{localStorage.setItem('arteon_gpt',e.target.value.trim());}catch(_){}};
+setMode(engineMode);updTokBtn();
+$('bMic').onclick=$('bMic2').onclick=()=>{closeMenu();const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return alert("Micro : utilise Chrome.");const r=new R();r.lang='fr-FR';r.onresult=e=>{inp.value=e.results[0][0].transcript;send();};r.start();};
+$('bHelp').onclick=()=>{closeMenu();inp.value="aide";send();};
+$('bClear').onclick=()=>{localStorage.removeItem(PFX+'chat');chat.innerHTML='';closeMenu();addMsg("Mémoire effacée 🗑️.",false,{c:'l',t:'⚡'});};
+$('bExport').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([[...chat.querySelectorAll('.msg')].map(x=>x.innerText).join('\n\n')],{type:'text/plain'}));a.download='arteon.txt';a.click();closeMenu();};
+$('bTrain').onclick=()=>{const v=$('trainIn').value.trim();if(!v)return alert("Colle du JSON [{q,a}] ou écris : question :: réponse");try{if(v.startsWith('[')){const arr=JSON.parse(v);arr.forEach(x=>{if(x.q&&x.a)MEM.push({q:String(x.q),a:String(x.a)});});}else if(v.includes('::')){const i=v.indexOf('::');MEM.push({q:v.slice(0,i).trim(),a:v.slice(i+2).trim()});}else return alert("Format : [{\"q\":\"...\",\"a\":\"...\"}] ou question :: réponse");localStorage.setItem(PFX+'mem',JSON.stringify(MEM.slice(-300)));$('trainIn').value='';stats();closeMenu();addMsg("🎓 Entraînement ajouté ! Je connais maintenant <b>"+MEM.length+"</b> infos. Teste-moi !",false,{c:'l',t:'🎓 TRAIN'});}catch(err){alert("JSON invalide : "+err.message);}};
+$('bTrainShow').onclick=()=>{closeMenu();addMsg(MEM.length?("📚 <b>"+MEM.length+" infos apprises :</b><br>• "+MEM.slice(-15).map(x=>esc(x.q)).join("<br>• ")):"📚 Aucune info entraînée pour l'instant. Colle du JSON dans ☰ → 🎓 Entraînement.",false,{c:'l',t:'🎓 TRAIN'});};
+</script>
+</body>
+</html>
